@@ -7,24 +7,34 @@
 //
 
 import UIKit
+import Photos.PHAsset
 
 class ViewController: UIViewController {
 
-    var isFirstAppear: Bool = true
+    
+    lazy var imageView = UIImageView()
     
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         view.backgroundColor = UIColor.yellow
+        
+        view.addSubview(imageView)
+        
+        let button = UIButton(type: .system)
+        button.setTitle("相册", for: .normal)
+        button.addTarget(self, action: #selector(handleClick), for: .touchUpInside)
+        button.sizeToFit()
+        button.center = view.center
+        view.addSubview(button)
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        if isFirstAppear {
-            isFirstAppear = false
-            let pickerController = ImagePickerController(maxSelectableImagesCount: 4, delegate: self)
-            present(pickerController, animated: true, completion: nil)
-        }
+    @objc
+    private func handleClick() {
+//        let pickerController = ImagePickerController(cropBox: CGSize(width: 300, height: 200), columnCount: 4, delegate: self)
+        let pickerController = ImagePickerController(maxSelectableImagesCount: 1, delegate: self)
+        pickerController.modalPresentationStyle = .fullScreen
+        present(pickerController, animated: true, completion: nil)
     }
 
     override func didReceiveMemoryWarning() {
@@ -35,5 +45,9 @@ class ViewController: UIViewController {
 }
 
 extension ViewController: ImagePickerControllerDelegate {
-    
+    func imagePickerController(_ picker: ImagePickerController, didFinishPickingPhotos photos: Array<UIImage>, isOriginal: Bool) {
+        imageView.image = photos.first
+        imageView.sizeToFit()
+        imageView.center = view.center
+    }
 }

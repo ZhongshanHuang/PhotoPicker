@@ -11,8 +11,11 @@ import Photos
 
 class AssetCell: UICollectionViewCell {
     
+    static let identifier = "AssetCell"
+    
     // MARK: - Properties[public]
     var assetModel: AssetModel?
+    var indexPath: IndexPath!
     var selectBlockHander: ((Int) -> Void)?
     
     private var representedAssetIdentifier: String = ""
@@ -41,23 +44,33 @@ class AssetCell: UICollectionViewCell {
         }
         
         representedAssetIdentifier = model.asset.localIdentifier
-        let requestID = ImagePickerManager.shared.loadPhoto(with: model.asset, targetSize: bounds.size, completion: { (image, _, isDegraded) in
-            if self.representedAssetIdentifier == model.asset.localIdentifier {
-                self.imageView.image = image
+        
+        if let image = ImagePickerManager.shared.cache.object(forKey: representedAssetIdentifier + "\(bounds.size)") {
+            self.imageView.image = image
+        } else {
+            let requestID = ImagePickerManager.shared.loadPhoto(with: model.asset, targetSize: bounds.size, completion: { (image, _, isDegraded) in
+                if !isDegraded && self.representedAssetIdentifier == model.asset.localIdentifier {
+                    self.imageView.image = image
+                    if let image = image {
+                        ImagePickerManager.shared.cache.setObject(image, forKey: self.representedAssetIdentifier + "\(self.bounds.size)", cost: CFDataGetLength(image.cgImage?.dataProvider?.data))
+                    }
+                    
+                }
+            })
+            // 之前的与现在的不一致，则取消之前的request
+            if requestID != imageRequestID {
+                PHImageManager.default().cancelImageRequest(imageRequestID)
             }
-        })
 
-        if requestID != imageRequestID {
-            PHImageManager.default().cancelImageRequest(imageRequestID)
+            imageRequestID = requestID
         }
-
-        imageRequestID = requestID
     }
     
     // MARK: - Selector
     
     /// 选中按钮点击方法
-    @objc private func selectBtnClick(_ sender: UIButton) {
+    @objc
+    private func handleSelectAction(_ sender: UIButton) {
         let isSelected = sender.isSelected
         
         // 图片不能超过9张提示
@@ -73,13 +86,9 @@ class AssetCell: UICollectionViewCell {
         assetModel?.isSelected = sender.isSelected
         
         if sender.isSelected {
-            imagePicker.selectedModels.append(assetModel!)
+            imagePicker.selectedModels[indexPath] = assetModel
         } else {
-            
-            let index = imagePicker.selectedModels.firstIndex { (model) -> Bool in
-                model.asset == self.assetModel?.asset
-            }
-            imagePicker.selectedModels.remove(at: index!)
+            imagePicker.selectedModels.removeValue(forKey: indexPath)
         }
         
         selectBlockHander?(imagePicker.selectedModels.count)
@@ -104,15 +113,15 @@ class AssetCell: UICollectionViewCell {
 
     
     // MARK: - Properties[private-lazy]
-    private lazy var selectBtn: UIButton = {
+    lazy var selectBtn: UIButton = {
         let btn = UIButton(type: .custom)
         btn.setImage(UIImage(named: "photo_choose_def"), for: .normal)
         btn.setImage(UIImage(named: "photo_choose_sel"), for: .selected)
-        btn.addTarget(self, action: #selector(selectBtnClick(_:)), for: .touchUpInside)
+        btn.addTarget(self, action: #selector(handleSelectAction(_:)), for: .touchUpInside)
         return btn
     }()
     
-    private lazy var imageView: UIImageView = {
+    lazy var imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true

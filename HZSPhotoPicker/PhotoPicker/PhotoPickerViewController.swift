@@ -9,62 +9,47 @@
 import UIKit
 import Photos.PHAsset
 
-private let kAssetCellIdentifier: String = "AssetCellIdentifier"
-
-class PhotoPickerViewController: UIViewController {
+class PhotoPickerViewController: PhotoPickerBaseViewController {
 
     // MARK: - Properties[public]
-    var columnCount: Int = 4
     var albumModel: AlbumModel?
     var shouldScrollToBottom: Bool = true
     
-    private var isFirstDisplay: Bool = true
+    private var assetModels: [AssetModel] = []
+    private var isFromPreview: Bool = false
     
     // MARK: - View Life Cycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupSubviews()
-        fetchAssetModels()
+        setupUI()
+        loadData()
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
+    deinit {
+        print("PhotoPickerViewController deinit")
+    }
+    
+    private func setupUI() {
+        let moreAlbum = UIButton(type: .system)
+        moreAlbum.setTitle("更多项目", for: .normal)
+        moreAlbum.addTarget(self, action: #selector(handleMoreAlbumAction), for: .touchUpInside)
+        navigationItem.titleView = moreAlbum
         
-        if isFirstDisplay {
-            isFirstDisplay = false
-        } else {
-            collectionView.reloadData()
-        }
-    }
-    
-    private func setupSubviews() {
-        view.backgroundColor = UIColor.white
-        title = "照片"
         
         // right bar
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "取消", style: .plain, target: self, action: #selector(rightBarButtonClick))
-        
-        // left bar
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "返回", style: .plain, target: self, action: #selector(leftBarButtonClick))
-        
-        // flowLayout
-        if #available(iOS 11, *) {
-            collectionView.contentInsetAdjustmentBehavior = .never
-        } else {
-            automaticallyAdjustsScrollViewInsets = false
-        }
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "取消", style: .plain, target: self, action: #selector(handleDismissAction))
         
         let margin: CGFloat = imagePicker.margin
-        let width: CGFloat = (view.bounds.width  - 2 * margin - CGFloat(columnCount - 1) * margin) / CGFloat(columnCount)
+        let columnCount = (navigationController as! ImagePickerController).columnCount
+        let width: CGFloat = (view.bounds.width - CGFloat(columnCount - 1) * margin) / CGFloat(columnCount)
         flowLayout.itemSize = CGSize(width: width, height: width)
         flowLayout.minimumLineSpacing = margin
         flowLayout.minimumInteritemSpacing = margin
-        flowLayout.sectionInset = UIEdgeInsets(top: 64 + margin, left: margin, bottom: 44 + margin, right: margin)
         
         // collectionView
         collectionView.frame = view.bounds
-        collectionView.backgroundColor = UIColor.white
+        collectionView.backgroundColor = .white
         view.addSubview(collectionView)
         
         // proxy
@@ -72,44 +57,75 @@ class PhotoPickerViewController: UIViewController {
         collectionView.dataSource = self
         
         // Register cell
-        collectionView.register(AssetCell.self, forCellWithReuseIdentifier: kAssetCellIdentifier)
+        collectionView.register(AssetCell.self, forCellWithReuseIdentifier: AssetCell.identifier)
         
-        // bottomBar
-        bottomBar.frame = CGRect(x: 0, y: view.bounds.height - 44, width: view.bounds.width, height: 44)
-        view.addSubview(bottomBar)
-        
-        // previewBtn
-        previewBtn.frame = CGRect(x: 0, y: (bottomBar.bounds.height - 30)/2, width: 60, height: 30)
-        bottomBar.addSubview(previewBtn)
-        
-        // originalBtn
-        originalBtn.frame = CGRect(x: (bottomBar.bounds.width - 60)/2, y: (bottomBar.bounds.height - 30)/2, width: 60, height: 30)
-        bottomBar.addSubview(originalBtn)
+        if imagePicker.type == .selections {
+            // bottomBar
+            let height = UIDevice.bottomSafeArea
+            bottomBar.frame = CGRect(x: 0, y: view.bounds.height - height, width: view.bounds.width, height: height)
+            view.addSubview(bottomBar)
+            
+            let topPadding: CGFloat = 15
+            
+            // previewBtn
+            previewBtn.frame = CGRect(x: 0, y: topPadding, width: 60, height: 30)
+            bottomBar.addSubview(previewBtn)
+            
+            // originalBtn
+            originalBtn.frame = CGRect(x: (bottomBar.bounds.width - 60)/2, y: topPadding, width: 60, height: 30)
+            bottomBar.addSubview(originalBtn)
 
-        // senderBtn
-        senderBtn.frame = CGRect(x: bottomBar.bounds.width - 60 - 8, y: (bottomBar.bounds.height - 30)/2, width: 60, height: 30)
-        bottomBar.addSubview(senderBtn)
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+            // senderBtn
+            senderBtn.frame = CGRect(x: bottomBar.bounds.width - 60 - 8, y: topPadding, width: 60, height: 30)
+            bottomBar.addSubview(senderBtn)
+        }
     }
     
-    // MARK: - Helper Methods
+    private func loadData() {
+        switch ImagePickerManager.shared.autorizationStatus() {
+        case .denied:
+            let tipText: String
+            if let appInfo = Bundle.main.infoDictionary, let appName = appInfo["CFBundleDisplayName"] as? String {
+                tipText = "请在手机的[设置-隐私-照片]选项中,允许\(appName)访问你的相册"
+            } else {
+                tipText = "请在手机的[设置-隐私-照片]选项中,允许访问你的相册"
+            }
+            let alertView = UIAlertController(title: "无访问权限", message: tipText, preferredStyle: .alert)
+            let cancel = UIAlertAction(title: "取消", style: .cancel, handler: nil)
+            alertView.addAction(cancel)
+            let setting = UIAlertAction(title: "去设置", style: .default) { (_) in
+                if #available(iOS 10, *) {
+                    UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!, options: [:], completionHandler: nil)
+                } else {
+                    UIApplication.shared.openURL(URL(string: UIApplication.openSettingsURLString)!)
+                }
+            }
+            alertView.addAction(setting)
+            present(alertView, animated: true, completion: nil)
+        case .authorized:
+            fetchAssetModels()
+        default:
+            ImagePickerManager.shared.requestAuthorization { status in
+                if status == .authorized {
+                    self.fetchAssetModels()
+                }
+            }
+        }
+
+    }
     
     private func fetchAssetModels() {
         
         // 有数据的话直接显示
         if albumModel != nil {
-            updateCollectionView()
-            return
-        }
-        
-        // 没有传递数据过来，自己加载相机相册
-        DispatchQueue.global(qos: .userInitiated).async {
-            ImagePickerManager.shared.loadCameraRollAlbum(allowPickingVideo: self.imagePicker.allowPickingVideo, needFetchAssets: true, completion: { (model) in
-                self.albumModel = model
+            ImagePickerManager.shared.loadAssets(from: albumModel!.fetchResult) { (assets) in
+                self.assetModels = assets
+                self.updateCollectionView()
+            }
+        } else { // 没有传递数据过来，自己加载相机相册
+            let allowPickingVideo = (self.imagePicker.type == .avatar) ? false : self.imagePicker.allowPickingVideo
+            ImagePickerManager.shared.loadCameraRollAlbumAssets(allowPickingVideo: allowPickingVideo, completion: { (assets) in
+                self.assetModels = assets
                 self.updateCollectionView()
             })
         }
@@ -120,49 +136,73 @@ class PhotoPickerViewController: UIViewController {
         DispatchQueue.main.async {
             self.collectionView.reloadData()
             if self.shouldScrollToBottom {
-                self.collectionView.scrollToItem(at: IndexPath(item: self.collectionView.numberOfItems(inSection: 0) - 1, section: 0),
-                                            at: .top,
-                                            animated: false)
+                let indexPath = IndexPath(item: self.collectionView.numberOfItems(inSection: 0) - 1, section: 0)
+                self.collectionView.scrollToItem(at: indexPath, at: .top, animated: false)
             }
             
         }
         
     }
+
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        // Dispose of any resources that can be recreated.
+    }
+    
     
     // MARK: - Selector
     
-    // 返回点击
-    @objc private func leftBarButtonClick() {
-        navigationController?.popViewController(animated: true)
-    }
-    
-    // 取消点击
-    @objc private func rightBarButtonClick() {
+    /// 取消点击
+    @objc
+    private func handleDismissAction() {
         navigationController?.dismiss(animated: true, completion: nil)
     }
     
-    // 预览点击
-    @objc private func previewBtnClick(_ sender: UIButton) {
+    /// 预览点击
+    @objc
+    private func handlePreviewAction(_ sender: UIButton) {
         let vc = PhotoPreviewViewController()
-        vc.assetModels = Array(imagePicker.selectedModels)
-        navigationController?.pushViewController(vc, animated: true)
+        vc.assetModels = Array(imagePicker.selectedModels.values)
+        vc.isFromPreview = true
+        
+        vc.transitioningDelegate = modalTransitionDelegate
+        vc.modalPresentationStyle = .custom
+        modalTransitionDelegate.presentDelegate = self
+        modalTransitionDelegate.dismissDelegate = vc
+        
+        present(vc, animated: true, completion: nil)
+    }
+    
+    /// 点击更多相册
+    @objc
+    private func handleMoreAlbumAction() {
+        let albumVC = AlbumPickerViewController()
+        albumVC.selectAlbum = { album in
+            self.albumModel = album
+            self.fetchAssetModels()
+        }
+        addChild(albumVC)
+        view.addSubview(albumVC.view)
+        albumVC.didMove(toParent: self)
+        
+        albumVC.view.transform = CGAffineTransform.identity.translatedBy(x: 0, y: -albumVC.view.frame.height)
+        UIView.animate(withDuration: 0.35) {
+            albumVC.view.transform = .identity
+        }
     }
     
     // 原图选项
-    @objc private func originalBtnClick(_ sender: UIButton) {
+    @objc
+    private func handleOriginalAction(_ sender: UIButton) {
         sender.isSelected = !sender.isSelected
     }
     
-    @objc private func senderBtnClick(_ sender: UIButton) {
+    @objc
+    private func handleSendAction(_ sender: UIButton) {
         let isOriginal = originalBtn.isSelected
-        
         var selectImages: [UIImage] = []
-        var selectAssets: [PHAsset] = []
         
-        
-        for model in self.imagePicker.selectedModels {
-            selectAssets.append(model.asset)
-
+        for (_, model) in self.imagePicker.selectedModels {
             self.group.enter()
             // 线程同步
             _ = self.semaphore.wait(wallTimeout: DispatchWallTime.distantFuture)
@@ -178,11 +218,10 @@ class PhotoPickerViewController: UIViewController {
         // 照片获取完成后
         group.notify(queue: DispatchQueue.main) {
             // 回调代理方法
-            self.imagePicker.pickerDelegate?.imagePickerController?(self.imagePicker, didFinishPickingPhotos: selectImages, sourceAssets: selectAssets, isOriginal: isOriginal)
+            self.imagePicker.pickerDelegate?.imagePickerController?(self.imagePicker, didFinishPickingPhotos: selectImages, isOriginal: isOriginal)
             // 退出
             self.imagePicker.dismiss(animated: true, completion: nil)
         }
-        
     }
     
     
@@ -195,7 +234,7 @@ class PhotoPickerViewController: UIViewController {
     
     private lazy var previewBtn: UIButton = {
         let btn = UIButton(type: .custom)
-        btn.addTarget(self, action: #selector(previewBtnClick(_:)), for: .touchUpInside)
+        btn.addTarget(self, action: #selector(handlePreviewAction(_:)), for: .touchUpInside)
         btn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 16)
         btn.setTitle("预览", for: .normal)
         btn.setTitleColor(UIColor.white, for: .normal)
@@ -206,9 +245,9 @@ class PhotoPickerViewController: UIViewController {
     
     private lazy var originalBtn: UIButton = {
         let btn = UIButton(type: .custom)
-        btn.addTarget(self, action: #selector(originalBtnClick(_:)), for: .touchUpInside)
+        btn.addTarget(self, action: #selector(handleOriginalAction(_:)), for: .touchUpInside)
         btn.titleLabel?.font = UIFont.systemFont(ofSize: 14)
-        btn.setTitle("原图", for: .normal)
+        btn.setTitle(" 原图", for: .normal)
         btn.setImage(UIImage(named: "photo_original_def"), for: .normal)
         btn.setImage(UIImage(named: "photo_original_sel"), for: .selected)
         btn.setTitleColor(UIColor.white, for: .normal)
@@ -217,7 +256,7 @@ class PhotoPickerViewController: UIViewController {
     
     private lazy var senderBtn: UIButton = {
         let btn = UIButton(type: .custom)
-        btn.addTarget(self, action: #selector(senderBtnClick(_:)), for: .touchUpInside)
+        btn.addTarget(self, action: #selector(handleSendAction(_:)), for: .touchUpInside)
         btn.titleLabel?.font = UIFont.systemFont(ofSize: 15)
         btn.setTitle("发送", for: .normal)
         btn.backgroundColor = UIColor.green
@@ -235,7 +274,8 @@ class PhotoPickerViewController: UIViewController {
     private var imagePicker: ImagePickerController {
         return navigationController as! ImagePickerController
     }
-
+    
+    private var modalTransitionDelegate = PhotoBrowserTransitionAnimator()
 }
 
 // MARK: - UICollectionViewDataSource
@@ -243,18 +283,22 @@ class PhotoPickerViewController: UIViewController {
 extension PhotoPickerViewController: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return albumModel?.models.count ?? 0
+        return assetModels.count
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: kAssetCellIdentifier, for: indexPath) as! AssetCell
-        
-        cell.setAssetModel(albumModel!.models[indexPath.row])
-        cell.selectBlockHander = {[weak self] selectCount in
-            let isEnabled = (selectCount > 0)
-            self?.previewBtn.isEnabled = isEnabled
-            self?.senderBtn.isEnabled = isEnabled
-            self?.senderBtn.alpha = (isEnabled ? 1.0 : 0.5)
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: AssetCell.identifier, for: indexPath) as! AssetCell
+        cell.indexPath = indexPath
+        cell.setAssetModel(assetModels[indexPath.row])
+        if imagePicker.type == .avatar {
+            cell.selectBtn.isHidden = true
+        } else {
+            cell.selectBlockHander = {[weak self] selectCount in
+                let isEnabled = (selectCount > 0)
+                self?.previewBtn.isEnabled = isEnabled
+                self?.senderBtn.isEnabled = isEnabled
+                self?.senderBtn.alpha = (isEnabled ? 1.0 : 0.5)
+            }
         }
         return cell
     }
@@ -266,9 +310,57 @@ extension PhotoPickerViewController: UICollectionViewDataSource {
 extension PhotoPickerViewController: UICollectionViewDelegate {
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        let vc = PhotoPreviewViewController()
-        vc.assetModels = albumModel!.models
-        vc.targetIndexPath = indexPath
-        navigationController?.pushViewController(vc, animated: true)
+        isFromPreview = true
+        
+        switch (navigationController as! ImagePickerController).type {
+        case .avatar:
+            let vc = CropViewController()
+            vc.assetModel = assetModels[indexPath.item]
+            navigationController?.pushViewController(vc, animated: true)
+        case .selections:
+            let vc = PhotoPreviewViewController()
+            vc.assetModels = assetModels
+            vc.targetIndexPath = indexPath
+            vc.isFromPreview = false
+
+            vc.transitioningDelegate = modalTransitionDelegate
+            vc.modalPresentationStyle = .custom
+            modalTransitionDelegate.presentDelegate = self
+            modalTransitionDelegate.dismissDelegate = vc
+            modalTransitionDelegate.indexPath = indexPath
+            
+            present(vc, animated: true, completion: nil)
+        }
     }
+}
+
+// MARK: - PhotoBrowserPresentDelegate
+
+extension PhotoPickerViewController: PhotoBrowserPresentDelegate {
+    
+    func imageViewForPresent(indexPath: IndexPath) -> UIImageView {
+        let cell = collectionView.cellForItem(at: indexPath) as! AssetCell
+        let imageView = UIImageView(image: cell.imageView.image)
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        return imageView
+    }
+    
+    func photoBrowserPresentFromRect(indexPath: IndexPath) -> CGRect {
+        let cell = collectionView.cellForItem(at: indexPath)!
+        if collectionView.indexPathsForVisibleItems.contains(indexPath) {
+            return UIApplication.shared.delegate!.window!!.convert(cell.frame, from: collectionView)
+        } else {
+            return CGRect(origin: CGPoint(x: CGFloat.nan, y: CGFloat.nan), size: cell.frame.size)
+        }
+    }
+    
+    func photoBrowserPresentToRect(indexPath: IndexPath) -> CGRect {
+        let cell = collectionView.cellForItem(at: indexPath) as! AssetCell
+        let imageSize = cell.imageView.image?.size ?? .zero
+        if imageSize == .zero { return .zero }
+        let newHeight = view.bounds.width * imageSize.height / imageSize.width
+        return CGRect(x: 0, y: (view.bounds.height - newHeight) / 2, width: view.bounds.width, height: newHeight)
+    }
+    
 }

@@ -10,6 +10,8 @@ import UIKit
 
 class AlbumCell: UITableViewCell {
     
+    static let identifier = "AlbumCell"
+    
     // MARK: - Properties
     
     var albumModel: AlbumModel? {
@@ -17,11 +19,11 @@ class AlbumCell: UITableViewCell {
             guard let model = albumModel else { return }
             
             let nameAttributedStr = NSMutableAttributedString(string: model.name, attributes: [.font: UIFont.systemFont(ofSize: 16), .foregroundColor: UIColor.black])
-            let countAttributedStr = NSAttributedString(string: "  (\(model.count))", attributes: [.font: UIFont.systemFont(ofSize: 16), .foregroundColor: UIColor.lightGray])
+            let countAttributedStr = NSAttributedString(string: "  (\(model.fetchResult.count))", attributes: [.font: UIFont.systemFont(ofSize: 16), .foregroundColor: UIColor.lightGray])
             nameAttributedStr.append(countAttributedStr)
             titleLabel.attributedText = nameAttributedStr
             
-            ImagePickerManager.shared.loadPosterImage(with: model, targetSize: posterImageView.bounds.size) { (postImage) in
+            ImagePickerManager.shared.loadPosterImage(with: model, targetSize: CGSize(width: 70, height: 70)) { (postImage) in
                 self.posterImageView.image = postImage
             }
         }

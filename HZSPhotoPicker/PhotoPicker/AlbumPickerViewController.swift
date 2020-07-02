@@ -10,31 +10,20 @@ import UIKit
 
 private let kAlbumCellIdentifier: String = "AlbumCellIdentifier"
 
-class AlbumPickerViewController: UIViewController {
+class AlbumPickerViewController: PhotoPickerBaseViewController {
 
     // MARK: - Properties
     
-    var columnCount: Int = 0
-    var isFirstAppear: Bool = true
+    var selectAlbum: ((AlbumModel) -> Void)?
     
-    var albumModels: [AlbumModel] = []
-    
-    private var imagePicker: ImagePickerController {
-        return self.navigationController as! ImagePickerController
-    }
-    
+    private var albumModels: [AlbumModel] = []
     private var tableView: UITableView = UITableView(frame: .zero, style: .plain)
     
     // MARK: - Methods-[public]
     
     func fetchAlbums() {
-        // 如果不许访问
-        if !ImagePickerManager.shared.authorizationStatusAuthorized() {
-            return
-        }
-        
         DispatchQueue.global(qos: .userInitiated).async {
-            ImagePickerManager.shared.loadAllAlbums(allowPickingVideo: self.imagePicker.allowPickingVideo, needFetchAssets: true, completion: { (albums) in
+            ImagePickerManager.shared.loadAllAlbums(allowPickingVideo: false, needFetchAssets: true, completion: { (albums) in
                 self.albumModels = albums
                
                 DispatchQueue.main.async {
@@ -42,7 +31,6 @@ class AlbumPickerViewController: UIViewController {
                 }
             })
         }
-        
     }
     
     // MARK: - View Life Circle
@@ -54,21 +42,23 @@ class AlbumPickerViewController: UIViewController {
         setupSubviews()
     }
     
+    deinit {
+        print("AlbumPickerViewController deinit")
+    }
+    
     private func setupSubviews() {
-        title = "相册"
-        view.backgroundColor = .white
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "取消",
-                                                            style: .plain,
-                                                            target: self,
-                                                            action: #selector(rightBarButtonClick))
+        view.backgroundColor = UIColor(white: 0.6, alpha: 0.5)
         
-        tableView.frame = view.bounds
+        var frame = view.bounds
+        frame.size.height *= 3 / 4
+        tableView.frame = frame
         view.addSubview(tableView)
         
         tableView.estimatedSectionHeaderHeight = 0
         tableView.estimatedSectionFooterHeight = 0
         tableView.estimatedRowHeight = 0
         tableView.rowHeight = 70
+        tableView.tableFooterView = UIView()
         
         tableView.dataSource = self
         tableView.delegate = self
@@ -77,24 +67,12 @@ class AlbumPickerViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
-        // 第一次显示时才加载数据
-        if isFirstAppear {
-            fetchAlbums()
-            self.isFirstAppear = false
-        }
+        fetchAlbums()
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
-    }
-    
-    // MARK: - Selector
-    
-    @objc
-    private func rightBarButtonClick() {
-        imagePicker.dismiss(animated: true, completion: nil)
     }
     
 }
@@ -119,16 +97,20 @@ extension AlbumPickerViewController: UITableViewDataSource {
 // MARK: - UITableViewDelegate
 
 extension AlbumPickerViewController: UITableViewDelegate {
-        
+    
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         // 取消选中效果
         tableView.deselectRow(at: indexPath, animated: true)
-        // 如果相册没有照片的话不跳转
-        if albumModels[indexPath.row].count == 0 { return }
         
-        let vc = PhotoPickerViewController()
-        vc.albumModel = albumModels[indexPath.row]
-        navigationController?.pushViewController(vc, animated: true)
+        self.willMove(toParent: nil)
+        UIView.animate(withDuration: 0.35) {
+            self.view.transform = CGAffineTransform.identity.translatedBy(x: 0, y: -self.view.frame.height)
+        } completion: { (_) in
+            self.view.removeFromSuperview()
+            self.removeFromParent()
+            
+            self.selectAlbum?(self.albumModels[indexPath.row])
+        }
     }
 }
 

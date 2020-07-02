@@ -11,6 +11,8 @@ import Photos
 
 class PhotoPreviewCell: UICollectionViewCell {
     
+    static let identifier = "PhotoPreviewCell"
+    
     // MARK: - Properties[public]
     var assetModel: AssetModel?
     
@@ -22,14 +24,14 @@ class PhotoPreviewCell: UICollectionViewCell {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupSubviews()
-        
     }
     
     private func setupSubviews() {
-        backgroundColor = UIColor.black
-        scrollView.addSubview(imageView)
-        scrollView.delegate = self
+        scrollView.frame = contentView.bounds
         contentView.addSubview(scrollView)
+        
+        scrollView.addSubview(imageView)
+        
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -67,23 +69,29 @@ class PhotoPreviewCell: UICollectionViewCell {
     
     func setAssetModel(_ model: AssetModel) {
         self.assetModel = model
-        
         representedAssetIdentifier = model.asset.localIdentifier
-        let requestID = ImagePickerManager.shared.loadPhoto(with: model.asset, targetSize: UIScreen.main.bounds.size, completion: { (image, _, isDegraded) in
-            if self.representedAssetIdentifier == model.asset.localIdentifier {
-                self.imageView.image = image
-            }
-            if !isDegraded {
-                self.setPosition(accordingTo: image!.size)
-            }
-        })
         
-        // 可以降低快速滑动时候的内存
-        if requestID != imageRequestID && imageRequestID != 0 {
-            PHImageManager.default().cancelImageRequest(imageRequestID)
+        if let image = ImagePickerManager.shared.cache.object(forKey: representedAssetIdentifier + "\(bounds.size)") {
+            self.imageView.image = image
+            self.setPosition(accordingTo: image.size)
+        } else {
+            let requestID = ImagePickerManager.shared.loadPhoto(with: model.asset, targetSize: bounds.size, completion: { (image, _, isDegraded) in
+                if !isDegraded && self.representedAssetIdentifier == model.asset.localIdentifier {
+                    if let image = image {
+                        self.imageView.image = image
+                        self.setPosition(accordingTo: image.size)
+                        ImagePickerManager.shared.cache.setObject(image, forKey: self.representedAssetIdentifier + "\(self.bounds.size)", cost: CFDataGetLength(image.cgImage?.dataProvider?.data))
+                    }
+                }
+            })
+            
+            if requestID != imageRequestID {
+                PHImageManager.default().cancelImageRequest(imageRequestID)
+            }
+
+            imageRequestID = requestID
         }
-        
-        imageRequestID = requestID
+                
     }
 
     
@@ -112,17 +120,16 @@ class PhotoPreviewCell: UICollectionViewCell {
         scrollView.frame = rect
     }
     
-    private lazy var imageView: UIImageView = {
+    lazy var imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
-        imageView.backgroundColor = .black
         return imageView
     }()
 
-    private lazy var scrollView: UIScrollView = {
+    lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
-        scrollView.backgroundColor = UIColor.black
+        scrollView.delegate = self
         scrollView.maximumZoomScale = 2
         scrollView.minimumZoomScale = 1
         scrollView.bouncesZoom = true

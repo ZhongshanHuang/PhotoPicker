@@ -6,7 +6,7 @@
 //  Copyright © 2018年 黄中山. All rights reserved.
 //
 
-import Foundation
+import UIKit
 import Photos
 
 func debugPrint<T>(_ message: T, file: String = #file, line: Int = #line, method: String = #function) {
@@ -21,46 +21,48 @@ class ImagePickerManager {
     static let shared = ImagePickerManager()
     private init() {}
     
-    private var screenScale: CGFloat = 2
+    private var screenScale: CGFloat = 1
     
     // MARK: - Properties
     
+    let cache: PoMemoryCache<String, UIImage> = {
+        let cache = PoMemoryCache<String, UIImage>()
+        cache.costLimit = 30 * 1024 * 1024
+        return cache
+    }()
     weak var pickerDelegate: ImagePickerControllerDelegate?
     var sortAscendingByModificationDate: Bool = true
     
     // MARK: - Authorize
     
     /// Return true if Authorized 返回YES如果得到了授权
+    @discardableResult
     func authorizationStatusAuthorized() -> Bool {
         let status = PHPhotoLibrary.authorizationStatus()
         if status == .notDetermined {
-            /**
-             * 当某些情况下AuthorizationStatus == .notDetermined时，无法弹出系统首次使用的授权alertView，系统应用设置里亦没有相册的设置，此时将无法使用，故作以下操作，弹出系统首次使用的授权alertView
-             */
-
             requestAuthorization(completion: nil)
         }
         return status == .authorized
     }
     
-    func requestAuthorization(completion: (() -> Void)?) {
+    func requestAuthorization(completion: ((PHAuthorizationStatus) -> Void)?) {
         DispatchQueue.global(qos: .default).async {
             PHPhotoLibrary.requestAuthorization({ (status) in
                 DispatchQueue.main.async {
-                    completion?()
+                    completion?(status)
                 }
             })
         }
     }
     
-    static func autorizationStatus() -> PHAuthorizationStatus {
+    func autorizationStatus() -> PHAuthorizationStatus {
         return PHPhotoLibrary.authorizationStatus()
     }
     
     // MARK: - 获取资源
     
     /// Load CameraRoll Album 获取相册
-    func loadCameraRollAlbum(allowPickingVideo: Bool, needFetchAssets: Bool, completion: @escaping (AlbumModel) -> Void) {
+    func loadCameraRollAlbumAssets(allowPickingVideo: Bool, completion: @escaping ([AssetModel]) -> Void) {
         let option = PHFetchOptions()
         if !allowPickingVideo {
             option.predicate = NSPredicate(format: "mediaType == %ld", PHAssetMediaType.image.rawValue)
@@ -75,12 +77,14 @@ class ImagePickerManager {
             // 过滤空相册
             if collection.estimatedAssetCount <= 0 { return }
             
-            if self.isCameraRollAlbum(metadata: collection) {
-                let fetchResult = PHAsset.fetchAssets(in: collection, options: option)
-                let albumModel = self.creatAlbumModel(with: fetchResult, name: collection.localizedTitle!, isCameraRoll: true, needFetchAssets: needFetchAssets)
-
-                completion(albumModel)
+            if collection.assetCollectionSubtype == .smartAlbumUserLibrary {
                 stop.pointee = true
+                
+                let fetchResult = PHAsset.fetchAssets(in: collection, options: option)
+                self.loadAssets(from: fetchResult) { (assets) in
+                    completion(assets)
+                }
+                
             }
         }
         
@@ -126,11 +130,10 @@ class ImagePickerManager {
                 // 过滤隐藏的 & 最近删除的相册
                 if collection.assetCollectionSubtype == .smartAlbumAllHidden || collection.assetCollectionSubtype.rawValue == 1000000201 { return }
                 
-                if self.isCameraRollAlbum(metadata: collection) {
-                    let model = self.creatAlbumModel(with: result, name: collection.localizedTitle!, isCameraRoll: true, needFetchAssets: needFetchAssets)
+                let model = AlbumModel(name: collection.localizedTitle!, fetchResult: result)
+                if collection.assetCollectionSubtype == .smartAlbumUserLibrary {
                     albumArr.insert(model, at: 0)
                 } else {
-                    let model = self.creatAlbumModel(with: result, name: collection.localizedTitle!, isCameraRoll: false, needFetchAssets: needFetchAssets)
                     albumArr.append(model)
                 }
             }
@@ -192,11 +195,11 @@ class ImagePickerManager {
 
     /// Load posetImage / 获取封面图
     func loadPosterImage(with albumMode: AlbumModel, targetSize: CGSize, completion: @escaping (UIImage?) -> Void) {
-        var asset: PHAsset?
+        let asset: PHAsset?
         if sortAscendingByModificationDate {
-            asset = albumMode.result?.lastObject
+            asset = albumMode.fetchResult.lastObject
         } else {
-            asset = albumMode.result?.firstObject
+            asset = albumMode.fetchResult.firstObject
         }
         
         if let asset = asset {
@@ -240,17 +243,26 @@ class ImagePickerManager {
         }
     }
     
-    /// Get Video 获得视频
-    func loadVideo(with asset: PHAsset, progressHandler: ((Double, Error, UnsafeMutablePointer<ObjCBool>, Dictionary<AnyHashable, Any>?) -> Void)? = nil, completion: @escaping (AVPlayerItem?, Dictionary<AnyHashable, Any>?) -> Void) {
+    /// 获得视频播放item
+    func requestPlayerItem(with asset: PHAsset, completion: @escaping (AVPlayerItem?, Dictionary<AnyHashable, Any>?) -> Void) {
         let options = PHVideoRequestOptions()
         PHImageManager.default().requestPlayerItem(forVideo: asset, options: options, resultHandler: completion)
     }
     
-    /// Save video
-    func saveVideo(url: URL, location: CLLocation? = nil, completion: ((PHAsset?, Error?) -> Void)?) {
+    func exportVideo(asset: PHAsset, to fileURL: URL, completion: @escaping () -> Void) {
+        PHImageManager.default().requestExportSession(forVideo: asset, options: nil, exportPreset: AVAssetExportPresetPassthrough) { (exportSession, info) in
+            exportSession?.outputURL = fileURL
+            exportSession?.exportAsynchronously(completionHandler: {
+                completion()
+            })
+        }
+    }
+    
+    /// 将本地视频保存至相册
+    func saveVideo(to fileURL: URL, location: CLLocation? = nil, completion: ((PHAsset?, Error?) -> Void)?) {
         var localIdentifier: String?
         PHPhotoLibrary.shared().performChanges({
-            let request = PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+            let request = PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: fileURL)
             localIdentifier = request?.placeholderForCreatedAsset?.localIdentifier
             request?.location = location
             request?.creationDate = Date()
@@ -263,7 +275,6 @@ class ImagePickerManager {
             }
         }
     }
-    
     
     /// Load Photo Bytes 获取一组照片大小
     func loadPhotosBytes(from models: Array<AssetModel>, completion: @escaping (String) -> Void) {
@@ -296,34 +307,7 @@ class ImagePickerManager {
         }
     }
     
-    func isCameraRollAlbum(metadata: PHAssetCollection) -> Bool {
-        var versionStr = UIDevice.current.systemVersion.replacingOccurrences(of: ".", with: "")
-        if versionStr.count <= 1 {
-            versionStr += "00"
-        } else if versionStr.count <= 2 {
-            versionStr += "0"
-        }
-        let version = Int(versionStr)!
-        // 8.0.0～8.0.2系统，拍照后的图片保存在最近添加中
-        if version >= 800 && version <= 802 {
-            return metadata.assetCollectionSubtype == .smartAlbumRecentlyAdded
-        } else {
-            return metadata.assetCollectionSubtype == .smartAlbumUserLibrary
-        }
-    }
-    
-    
     // MARK: - Methods[Private]
-    
-    private func creatAlbumModel(with result: PHFetchResult<PHAsset>, name: String, isCameraRoll: Bool, needFetchAssets: Bool) -> AlbumModel {
-        let model = AlbumModel()
-        model.set(result: result, needFetchAssets: needFetchAssets)
-        model.name = name
-        model.isCameraRoll = isCameraRoll
-        model.count = result.count
-        
-        return model
-    }
     
     private func creatAssetModel(with asset: PHAsset) -> AssetModel? {
         let type = assetType(asset)

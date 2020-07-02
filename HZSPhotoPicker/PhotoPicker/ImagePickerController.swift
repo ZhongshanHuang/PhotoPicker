@@ -9,124 +9,43 @@
 import UIKit
 import Photos.PHAsset
 
-@objc protocol ImagePickerControllerDelegate {
+@objc
+protocol ImagePickerControllerDelegate {
     
     // 这个照片选择器会自己dismiss，当选择器dismiss的时候，会执行下面的handle
-    @objc optional func imagePickerController(_ picker: ImagePickerController, didFinishPickingPhotos photos: Array<UIImage>, sourceAssets: Array<PHAsset>, isOriginal: Bool)
+    @objc
+    optional func imagePickerController(_ picker: ImagePickerController, didFinishPickingPhotos photos: Array<UIImage>, isOriginal: Bool)
+}
+
+extension ImagePickerController {
+    
+    enum PickerType {
+        case avatar // 头像选择器(可以裁剪)
+        case selections // 照片选择器(可以多选)
+    }
 }
 
 class ImagePickerController: UINavigationController {
     
-
-    // MARK: - Properties[private]
-    private var tipLabel: UILabel?
-    private var settingBtn: UIButton?
-    private var timer: Timer?
-    
-    // MARK: allowPickingVideo  
-    init(maxSelectableImagesCount: Int, columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
-      
-        self.pickerDelegate = delegate
-        self.columnCount = columnCount
-        
-        let albumVC = AlbumPickerViewController()
-        albumVC.isFirstAppear = true
-        albumVC.columnCount = columnCount
-        super.init(nibName: nil, bundle: nil)
-        pushViewController(albumVC, animated: false)
-        
-        // 如果不允许访问相册
-        if ImagePickerManager.shared.authorizationStatusAuthorized() == false {
-            tipLabel = UILabel()
-            tipLabel?.frame = CGRect(x: 8, y: 120, width: view.bounds.width - 16, height: 60)
-            tipLabel?.textAlignment = .center
-            tipLabel?.numberOfLines = 0
-            tipLabel?.font = UIFont.systemFont(ofSize: 16)
-            tipLabel?.textColor = UIColor.black
-            
-            var tipText: String
-            if let appInfo = Bundle.main.infoDictionary, let appName = appInfo["CFBundleDisplayName"] as? String {
-                tipText = "请允许\(appName)访问您的相册 路径:\"设置->隐私->相册\""
-            } else {
-                tipText = "请允许程序访问您的相册 路径:\"设置->隐私->相册\""
-            }
-            
-
-            tipLabel?.text = tipText
-            view.addSubview(tipLabel!)
-            
-            settingBtn = UIButton(type: .system)
-            settingBtn?.setTitle("设置", for: .normal)
-            settingBtn?.frame = CGRect(x: 0, y: 180, width: view.bounds.width, height: 44)
-            settingBtn?.titleLabel?.font = UIFont.systemFont(ofSize: 18)
-            settingBtn?.addTarget(self, action: #selector(settingBtnClick), for: .touchUpInside)
-            view.addSubview(settingBtn!)
-            
-            if ImagePickerManager.autorizationStatus() == .notDetermined {
-                timer = Timer.scheduledTimer(timeInterval: 0.2, target: self, selector: #selector(observeAuthrizationStatusChange), userInfo: nil, repeats: false)
-            }
-        } else {
-            pushPhotoPickerViewController()
-        }
-    }
-    
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    /// 打开设置界面
-    @objc private func settingBtnClick() {
-        if #available(iOS 10, *) {
-            UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!, options: [:], completionHandler: nil)
-        } else {
-            UIApplication.shared.openURL(URL(string: UIApplication.openSettingsURLString)!)
-        }
-    }
-    
-    /// 定时检查是否认证成功
-    @objc
-    private func observeAuthrizationStatusChange() {
-        timer?.invalidate()
-        timer = nil
-        if ImagePickerManager.autorizationStatus() == .notDetermined {
-            timer = Timer.scheduledTimer(timeInterval: 0.2, target: self, selector: #selector(observeAuthrizationStatusChange), userInfo: nil, repeats: false)
-            return
-        }
-        
-        if ImagePickerManager.shared.authorizationStatusAuthorized() {
-            tipLabel?.removeFromSuperview()
-            tipLabel = nil
-            settingBtn?.removeFromSuperview()
-            settingBtn = nil
-            
-            pushPhotoPickerViewController()
-            
-            if let albumPickerVC = visibleViewController as? AlbumPickerViewController {
-                albumPickerVC.fetchAlbums()
-            }
-        }
-    }
-    
-    /// push vc
-    func pushPhotoPickerViewController() {
-            let photoVC = PhotoPickerViewController()
-            photoVC.columnCount = columnCount
-            self.pushViewController(photoVC, animated: true)
-    }
-    
-    
     // MARK: - Properties
-
+    
+    let type: PickerType
+    
     weak var pickerDelegate: ImagePickerControllerDelegate?
     
+    /// 最多可以选择照片的数量
+    let maxSelectableImagesCount: Int = 9
+    
+    /// 裁剪框的大小
+    let cropBox: CGSize
+    
+    /// MARK: - 相册展示外观
+    ///
     /// 相册的列数
-    var columnCount: Int = 4
+    let columnCount: Int
     
     /// 相册照片的间隙
-    var margin: CGFloat = 8
-    
-    /// 最多可以选择照片的数量
-    var maxSelectableImagesCount: Int = 9
+    var margin: CGFloat = 2
     
     /// 按照修改时间的升序排序
     var sortAscendingByModificationDate: Bool = true
@@ -137,51 +56,54 @@ class ImagePickerController: UINavigationController {
     /// 默认为YES，如果设置为NO,用户将不能选择视频
     var allowPickingVideo = true
     
-    /// Default is NO / 默认为NO，为YES时可以多选视频/gif图片，和照片共享最大可选张数maxImagesCount的限制
-    var allowPickingMultipleVideo: Bool = true
+    /// 用户选中的图片数组
+    var selectedModels: [IndexPath: AssetModel] = [:]
     
-    /// 默认为NO，如果设置为YES,用户可以选择gif图片
-    var allowPickingGif: Bool = true
+    // MARK: Initializer
     
-    /// 用户选中过的图片数组
-    var selectedModels: Array<AssetModel> = []
-
+    /// 相册选择器
+    init(maxSelectableImagesCount: Int, columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
+        type = .selections
+        self.cropBox = .zero
+        self.pickerDelegate = delegate
+        self.columnCount = columnCount
+        
+        let pickVC = PhotoPickerViewController()
+        super.init(rootViewController: pickVC)
+    }
+    
+    /// 头像选择器
+    init(cropBox: CGSize, columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
+        type = .avatar
+        self.cropBox = cropBox
+        self.columnCount = columnCount
+        self.pickerDelegate = delegate
+        
+        let pickVC = PhotoPickerViewController()
+        super.init(rootViewController: pickVC)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     
     // MARK: - View Life Cycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupSubviews()
+        setupUI()
     }
     
-    private func setupSubviews() {
-        view.backgroundColor = UIColor.white
+    private func setupUI() {
         navigationBar.barStyle = .black
-        navigationBar.isTranslucent = true
         navigationBar.barTintColor = UIColor(red: 34/255.0, green: 34/255.0, blue: 34/255.0, alpha: 1.0)
         navigationBar.tintColor = UIColor.white
-        // 手势代理设为自己，处理手势冲突
-        interactivePopGestureRecognizer?.delegate = self
+    }
+    
+    deinit {
+        // 清除cache
+        ImagePickerManager.shared.cache.removeAllObjects()
     }
 }
 
-
-
-// MARK: - UIGestureRecognizerDelegate
-
-extension ImagePickerController: UIGestureRecognizerDelegate {
-    
-    // 防止右滑手势将最底层视图控制器pop
-    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        if viewControllers.count > 1 {
-            return true
-        } else {
-            return false
-        }
-    }
-    
-    // collectionView手势 与 右滑同时触发的时候使 collectionView手势无效
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        return gestureRecognizer is UIScreenEdgePanGestureRecognizer
-    }
-}
