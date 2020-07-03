@@ -50,6 +50,7 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
         // collectionView
         collectionView.frame = view.bounds
         collectionView.backgroundColor = .white
+        collectionView.contentInset.bottom = UIDevice.bottomSafeArea
         view.addSubview(collectionView)
         
         // proxy
@@ -65,7 +66,7 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
             bottomBar.frame = CGRect(x: 0, y: view.bounds.height - height, width: view.bounds.width, height: height)
             view.addSubview(bottomBar)
             
-            let topPadding: CGFloat = 15
+            let topPadding: CGFloat = UIDevice.isIphoneX ? 15 : 10
             
             // previewBtn
             previewBtn.frame = CGRect(x: 0, y: topPadding, width: 60, height: 30)
@@ -347,11 +348,11 @@ extension PhotoPickerViewController: PhotoBrowserPresentDelegate {
     }
     
     func photoBrowserPresentFromRect(indexPath: IndexPath) -> CGRect {
-        let cell = collectionView.cellForItem(at: indexPath)!
         if collectionView.indexPathsForVisibleItems.contains(indexPath) {
+            let cell = collectionView.cellForItem(at: indexPath)!
             return UIApplication.shared.delegate!.window!!.convert(cell.frame, from: collectionView)
         } else {
-            return CGRect(origin: CGPoint(x: CGFloat.nan, y: CGFloat.nan), size: cell.frame.size)
+            return CGRect(origin: CGPoint(x: CGFloat.nan, y: CGFloat.nan), size: flowLayout.itemSize)
         }
     }
     

@@ -74,8 +74,8 @@ class AssetCell: UICollectionViewCell {
         let isSelected = sender.isSelected
         
         // 图片不能超过9张提示
-        if !isSelected, imagePicker.selectedModels.count >= 9 {
-            let alertVC = UIAlertController(title: "图片选择", message: "不能超过9张图片", preferredStyle: .alert)
+        if !isSelected, imagePicker.selectedModels.count >= imagePicker.maxSelectableImagesCount {
+            let alertVC = UIAlertController(title: "图片选择", message: "不能超过\(imagePicker.maxSelectableImagesCount)张图片", preferredStyle: .alert)
             let cancel = UIAlertAction(title: "确认", style: .cancel, handler: nil)
             alertVC.addAction(cancel)
             imagePicker.present(alertVC, animated: true, completion: nil)

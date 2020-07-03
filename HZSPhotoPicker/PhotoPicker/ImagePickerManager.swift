@@ -21,13 +21,13 @@ class ImagePickerManager {
     static let shared = ImagePickerManager()
     private init() {}
     
-    private var screenScale: CGFloat = 1
+    private var screenScale: CGFloat = UIScreen.main.scale
     
     // MARK: - Properties
     
     let cache: PoMemoryCache<String, UIImage> = {
         let cache = PoMemoryCache<String, UIImage>()
-        cache.costLimit = 30 * 1024 * 1024
+        cache.costLimit = 20 * 1024 * 1024
         return cache
     }()
     weak var pickerDelegate: ImagePickerControllerDelegate?

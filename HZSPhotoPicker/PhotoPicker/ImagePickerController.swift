@@ -34,7 +34,7 @@ class ImagePickerController: UINavigationController {
     weak var pickerDelegate: ImagePickerControllerDelegate?
     
     /// 最多可以选择照片的数量
-    let maxSelectableImagesCount: Int = 9
+    let maxSelectableImagesCount: Int
     
     /// 裁剪框的大小
     let cropBox: CGSize
@@ -62,11 +62,12 @@ class ImagePickerController: UINavigationController {
     // MARK: Initializer
     
     /// 相册选择器
-    init(maxSelectableImagesCount: Int, columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
+    init(columnCount: Int = 4, maxSelectableImagesCount: Int = 9, delegate: ImagePickerControllerDelegate) {
         type = .selections
         self.cropBox = .zero
         self.pickerDelegate = delegate
         self.columnCount = columnCount
+        self.maxSelectableImagesCount = maxSelectableImagesCount
         
         let pickVC = PhotoPickerViewController()
         super.init(rootViewController: pickVC)
@@ -76,8 +77,9 @@ class ImagePickerController: UINavigationController {
     init(cropBox: CGSize, columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
         type = .avatar
         self.cropBox = cropBox
-        self.columnCount = columnCount
         self.pickerDelegate = delegate
+        self.columnCount = columnCount
+        self.maxSelectableImagesCount = 0
         
         let pickVC = PhotoPickerViewController()
         super.init(rootViewController: pickVC)
