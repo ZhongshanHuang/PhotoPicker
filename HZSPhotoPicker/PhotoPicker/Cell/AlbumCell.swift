@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Photos
 
 class AlbumCell: UITableViewCell {
     
@@ -23,9 +24,16 @@ class AlbumCell: UITableViewCell {
             nameAttributedStr.append(countAttributedStr)
             titleLabel.attributedText = nameAttributedStr
             
-            ImagePickerManager.shared.loadPosterImage(with: model, targetSize: CGSize(width: 70, height: 70)) { (postImage) in
-                self.posterImageView.image = postImage
+            
+            let a: PHAsset!
+            if ImagePickerManager.shared.sortAscendingByModificationDate {
+                a = model.fetchResult.lastObject
+            } else {
+                a = model.fetchResult.firstObject
             }
+            guard let asset = a else { return }
+            
+            posterImageView.setImage(with: asset, toSize: bounds.size)
         }
     }
     

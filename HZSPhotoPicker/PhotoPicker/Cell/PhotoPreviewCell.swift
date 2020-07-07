@@ -14,7 +14,19 @@ class PhotoPreviewCell: UICollectionViewCell {
     static let identifier = "PhotoPreviewCell"
     
     // MARK: - Properties[public]
-    var assetModel: AssetModel?
+    var assetModel: AssetModel? {
+        didSet {
+            guard let model = assetModel else { return }
+            
+            imageView.setImage(with: model.asset, toSize: bounds.size) { [weak self] (image) in
+                guard let self = self else { return }
+                if let size = image?.size {
+                    self.setPosition(accordingTo: size)
+                }
+            }
+
+        }
+    }
     
     private let padding: CGFloat = 8
     private var representedAssetIdentifier: String = ""
@@ -66,34 +78,6 @@ class PhotoPreviewCell: UICollectionViewCell {
         let zoomRect = CGRect(x: touchPoint.x - 40, y: touchPoint.y - 40, width: 80, height: 80)
         scrollView.zoom(to: zoomRect, animated: true)
     }
-    
-    func setAssetModel(_ model: AssetModel) {
-        self.assetModel = model
-        representedAssetIdentifier = model.asset.localIdentifier
-        
-        if let image = ImagePickerManager.shared.cache.object(forKey: representedAssetIdentifier + "\(bounds.size)") {
-            self.imageView.image = image
-            self.setPosition(accordingTo: image.size)
-        } else {
-            let requestID = ImagePickerManager.shared.loadPhoto(with: model.asset, targetSize: bounds.size, completion: { (image, _, isDegraded) in
-                if !isDegraded && self.representedAssetIdentifier == model.asset.localIdentifier {
-                    if let image = image {
-                        self.imageView.image = image
-                        self.setPosition(accordingTo: image.size)
-                        ImagePickerManager.shared.cache.setObject(image, forKey: self.representedAssetIdentifier + "\(self.bounds.size)", cost: CFDataGetLength(image.cgImage?.dataProvider?.data))
-                    }
-                }
-            })
-            
-            if requestID != imageRequestID {
-                PHImageManager.default().cancelImageRequest(imageRequestID)
-            }
-
-            imageRequestID = requestID
-        }
-                
-    }
-
     
     /// 根据图片大小设置imageView的大小，并且设置scrollView的contentInset，使imageView处在中间
     private func setPosition(accordingTo size: CGSize) {

@@ -37,7 +37,7 @@ class CropViewController: PhotoPickerBaseViewController {
         if image != nil {
             (view as! CropView).image = image
         } else if let model = assetModel {
-            ImagePickerManager.shared.loadPhoto(with: model.asset, targetSize: UIScreen.main.bounds.size, completion: { (image, _, isDegraded) in
+            ImagePickerManager.shared.loadImage(with: model.asset, targetSize: UIScreen.main.bounds.size, completion: { (image, _, isDegraded) in
                 if !isDegraded {
                     (self.view as! CropView).image = image
                 }

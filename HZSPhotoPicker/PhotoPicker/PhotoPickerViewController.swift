@@ -26,10 +26,6 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
         loadData()
     }
     
-    deinit {
-        print("PhotoPickerViewController deinit")
-    }
-    
     private func setupUI() {
         let moreAlbum = UIButton(type: .system)
         moreAlbum.setTitle("更多项目", for: .normal)
@@ -134,15 +130,10 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
     
     /// CollectionView reloadData
     private func updateCollectionView() {
-        DispatchQueue.main.async {
-            self.collectionView.reloadData()
-            if self.shouldScrollToBottom {
-                let indexPath = IndexPath(item: self.collectionView.numberOfItems(inSection: 0) - 1, section: 0)
-                self.collectionView.scrollToItem(at: indexPath, at: .top, animated: false)
-            }
-            
+        if self.shouldScrollToBottom {
+            let indexPath = IndexPath(item: self.collectionView.numberOfItems(inSection: 0) - 1, section: 0)
+            self.collectionView.scrollToItem(at: indexPath, at: .top, animated: false)
         }
-        
     }
 
     override func didReceiveMemoryWarning() {
@@ -201,19 +192,25 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
     @objc
     private func handleSendAction(_ sender: UIButton) {
         let isOriginal = originalBtn.isSelected
-        var selectImages: [UIImage] = []
+        var selectImages = [UIImage]()
         
         for (_, model) in self.imagePicker.selectedModels {
             self.group.enter()
             // 线程同步
             _ = self.semaphore.wait(wallTimeout: DispatchWallTime.distantFuture)
-            ImagePickerManager.shared.loadPhoto(with: model.asset, isOriginal: isOriginal, completion: { (image, _, isDegraded) in
-                if !isDegraded, let image = image {
-                    selectImages.append(image)
-                    self.semaphore.signal()
-                    self.group.leave()
+        
+            ImagePickerManager.shared.loadImageData(with: model.asset) { (data, _) in
+                if let data = data {
+                    if isOriginal {
+                        selectImages.append(UIImage(data: data)!)
+                    } else {
+                        let scaleImage = downsample(imageData: data, to: UIScreen.main.bounds.size, scale: UIScreen.main.scale)
+                        selectImages.append(scaleImage)
+                    }
                 }
-            })
+                self.semaphore.signal()
+                self.group.leave()
+            }
         }
         
         // 照片获取完成后
@@ -290,7 +287,7 @@ extension PhotoPickerViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: AssetCell.identifier, for: indexPath) as! AssetCell
         cell.indexPath = indexPath
-        cell.setAssetModel(assetModels[indexPath.row])
+        cell.assetModel = assetModels[indexPath.row]
         if imagePicker.type == .avatar {
             cell.selectBtn.isHidden = true
         } else {
@@ -304,7 +301,6 @@ extension PhotoPickerViewController: UICollectionViewDataSource {
         return cell
     }
 }
-
 
 // MARK: - UICollectionViewDelegate
 

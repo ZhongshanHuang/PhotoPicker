@@ -7,10 +7,11 @@
 //
 
 import UIKit
-import Photos.PHAsset
+import CoreLocation
 
 class ViewController: UIViewController {
 
+    var manager: CLLocationManager!
     
     lazy var imageView = UIImageView()
     
@@ -19,14 +20,14 @@ class ViewController: UIViewController {
         // Do any additional setup after loading the view, typically from a nib.
         view.backgroundColor = UIColor.yellow
         
-        view.addSubview(imageView)
-        
+
         let button = UIButton(type: .system)
-        button.setTitle("相册", for: .normal)
+        button.setTitle(" 相册 ", for: .normal)
         button.addTarget(self, action: #selector(handleClick), for: .touchUpInside)
         button.sizeToFit()
         button.center = view.center
         view.addSubview(button)
+        
     }
     
     @objc

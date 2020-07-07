@@ -51,13 +51,13 @@ class CropView: UIView {
     
     private let foregroundContainer: UIView = {
         let view = UIView()
+        view.isUserInteractionEnabled = false
         view.clipsToBounds = true
         return view
     }()
     private let foregroundImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.layer.minificationFilter = .trilinear
-        imageView.isUserInteractionEnabled = true
         return imageView
     }()
     private let gridOverlayView: UIView = CropOverlayView()

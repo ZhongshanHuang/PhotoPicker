@@ -14,12 +14,28 @@ class AssetCell: UICollectionViewCell {
     static let identifier = "AssetCell"
     
     // MARK: - Properties[public]
-    var assetModel: AssetModel?
     var indexPath: IndexPath!
     var selectBlockHander: ((Int) -> Void)?
-    
-    private var representedAssetIdentifier: String = ""
-    private var imageRequestID: PHImageRequestID = 0
+    var assetModel: AssetModel? {
+        didSet {
+            guard let model = assetModel else { return }
+            
+            imageView.image = nil
+            self.assetModel = model
+            
+            selectBtn.isSelected = model.isSelected
+            if model.type == .video {
+                videoIcon.isHidden = false
+                timeLabel.isHidden = false
+                timeLabel.text = model.timeLength
+            } else {
+                videoIcon.isHidden = true
+                timeLabel.isHidden = true
+            }
+            
+            imageView.setImage(with: model.asset, toSize: bounds.size)
+        }
+    }
     
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -29,43 +45,7 @@ class AssetCell: UICollectionViewCell {
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
-    func setAssetModel(_ model: AssetModel) {
-        self.assetModel = model
         
-        selectBtn.isSelected = model.isSelected
-        if model.type == .video {
-            videoIcon.isHidden = false
-            timeLabel.isHidden = false
-            timeLabel.text = model.timeLength
-        } else {
-            videoIcon.isHidden = true
-            timeLabel.isHidden = true
-        }
-        
-        representedAssetIdentifier = model.asset.localIdentifier
-        
-        if let image = ImagePickerManager.shared.cache.object(forKey: representedAssetIdentifier + "\(bounds.size)") {
-            self.imageView.image = image
-        } else {
-            let requestID = ImagePickerManager.shared.loadPhoto(with: model.asset, targetSize: bounds.size, completion: { (image, _, isDegraded) in
-                if !isDegraded && self.representedAssetIdentifier == model.asset.localIdentifier {
-                    self.imageView.image = image
-                    if let image = image {
-                        ImagePickerManager.shared.cache.setObject(image, forKey: self.representedAssetIdentifier + "\(self.bounds.size)", cost: CFDataGetLength(image.cgImage?.dataProvider?.data))
-                    }
-                    
-                }
-            })
-            // 之前的与现在的不一致，则取消之前的request
-            if requestID != imageRequestID {
-                PHImageManager.default().cancelImageRequest(imageRequestID)
-            }
-
-            imageRequestID = requestID
-        }
-    }
-    
     // MARK: - Selector
     
     /// 选中按钮点击方法

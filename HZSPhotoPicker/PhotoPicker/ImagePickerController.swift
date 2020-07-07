@@ -48,10 +48,13 @@ class ImagePickerController: UINavigationController {
     var margin: CGFloat = 2
     
     /// 按照修改时间的升序排序
-    var sortAscendingByModificationDate: Bool = true
+    var sortAscendingByModificationDate: Bool {
+        get { return ImagePickerManager.shared.sortAscendingByModificationDate }
+        set { ImagePickerManager.shared.sortAscendingByModificationDate = newValue }
+    }
     
     /// 默认为YES，如果设置为NO,原图按钮将隐藏，用户不能选择发送原图
-    var allowPickingOriginalPhoto: Bool = true
+    var allowPickingOriginalPhoto: Bool = false
     
     /// 默认为YES，如果设置为NO,用户将不能选择视频
     var allowPickingVideo = true

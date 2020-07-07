@@ -224,13 +224,18 @@ class PhotoPreviewViewController: PhotoPickerBaseViewController {
                 self.group.enter()
                 // 线程同步
                 _ = self.semaphore.wait(wallTimeout: DispatchWallTime.distantFuture)
-                ImagePickerManager.shared.loadPhoto(with: model.asset, isOriginal: isOriginal, completion: { (image, _, isDegraded) in
-                    if !isDegraded, let image = image {
-                        selectImages.append(image)
-                        self.group.leave()
-                        self.semaphore.signal()
+                ImagePickerManager.shared.loadImageData(with: model.asset) { (data, _) in
+                    if let data = data {
+                        if isOriginal {
+                            selectImages.append(UIImage(data: data)!)
+                        } else {
+                            let scaleImage = downsample(imageData: data, to: UIScreen.main.bounds.size, scale: UIScreen.main.scale)
+                            selectImages.append(scaleImage)
+                        }
                     }
-                })
+                    self.semaphore.signal()
+                    self.group.leave()
+                }
             }
 
         }
@@ -334,7 +339,7 @@ extension PhotoPreviewViewController: UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: PhotoPreviewCell.identifier, for: indexPath) as! PhotoPreviewCell
-        cell.setAssetModel(assetModels[indexPath.row])
+        cell.assetModel = assetModels[indexPath.row]
         return cell
     }
 }

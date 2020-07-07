@@ -27,7 +27,7 @@ class ImagePickerManager {
     
     let cache: PoMemoryCache<String, UIImage> = {
         let cache = PoMemoryCache<String, UIImage>()
-        cache.costLimit = 20 * 1024 * 1024
+//        cache.costLimit = 100 * 1024 * 1024
         return cache
     }()
     weak var pickerDelegate: ImagePickerControllerDelegate?
@@ -167,7 +167,7 @@ class ImagePickerManager {
     
     /// Load Photo 获取照片 completion会调用多次，原始图片只调用一次
     @discardableResult
-    func loadPhoto(with asset: PHAsset, targetSize: CGSize = .zero, isOriginal: Bool = false, completion: @escaping (UIImage?, Dictionary<AnyHashable, Any>?, Bool) -> Void) -> PHImageRequestID {
+    func loadImage(with asset: PHAsset, targetSize: CGSize = .zero, isOriginal: Bool = false, completion: @escaping (UIImage?, Dictionary<AnyHashable, Any>?, Bool) -> Void) -> PHImageRequestID {
         
         let options = PHImageRequestOptions()
         var targetSize = targetSize
@@ -203,7 +203,7 @@ class ImagePickerManager {
         }
         
         if let asset = asset {
-            loadPhoto(with: asset, targetSize: targetSize) { (result, _, _) in
+            loadImage(with: asset, targetSize: targetSize) { (result, _, _) in
                 completion(result)
             }
         } else {
@@ -211,10 +211,26 @@ class ImagePickerManager {
         }
     }
     
+    /// Load posetImage / 获取封面图
+    func loadPosterImageData(with albumMode: AlbumModel, targetSize: CGSize, completion: @escaping (Data?, Dictionary<AnyHashable, Any>?) -> Void) {
+        let asset: PHAsset?
+        if sortAscendingByModificationDate {
+            asset = albumMode.fetchResult.lastObject
+        } else {
+            asset = albumMode.fetchResult.firstObject
+        }
+        
+        if let asset = asset {
+            loadImageData(with: asset, completion: completion)
+        } else {
+            completion(nil, nil)
+        }
+    }
+    
     /// 加载asset的原始数据
     /// 该方法中，completion只会走一次
     @discardableResult
-    func loadPhotoData(with asset: PHAsset, completion: @escaping (Data?, Dictionary<AnyHashable, Any>?) -> Void) -> PHImageRequestID {
+    func loadImageData(with asset: PHAsset, completion: @escaping (Data?, Dictionary<AnyHashable, Any>?) -> Void) -> PHImageRequestID {
         let options = PHImageRequestOptions()
         options.resizeMode = .exact
         options.deliveryMode = .highQualityFormat
@@ -277,7 +293,7 @@ class ImagePickerManager {
     }
     
     /// Load Photo Bytes 获取一组照片大小
-    func loadPhotosBytes(from models: Array<AssetModel>, completion: @escaping (String) -> Void) {
+    func loadImagesBytes(from models: Array<AssetModel>, completion: @escaping (String) -> Void) {
         if models.isEmpty {
             completion("0B")
             return
