@@ -14,8 +14,16 @@ class CropViewController: PhotoPickerBaseViewController {
     var assetModel: AssetModel?
     
     override func loadView() {
+        var cropSize = CGSize.zero
         let cropBox = (navigationController as! ImagePickerController).cropBox
-        view = CropView(cropBox: cropBox)
+        switch cropBox {
+        case .size(let size):
+            cropSize = size
+        case .ratio(let ratio):
+            cropSize.width = UIScreen.main.bounds.width
+            cropSize.height = cropSize.width / CGFloat(ratio)
+        }
+        view = CropView(cropBox: cropSize)
     }
     
     override func viewDidLoad() {

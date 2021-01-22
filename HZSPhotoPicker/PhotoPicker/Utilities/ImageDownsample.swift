@@ -19,7 +19,19 @@ func downsample(imageData: Data, to pointSize: CGSize, scale: CGFloat) -> UIImag
         kCGImageSourceCreateThumbnailFromImageAlways: true,
         kCGImageSourceCreateThumbnailWithTransform: true,
         kCGImageSourceThumbnailMaxPixelSize: maxDimentionInPixels] as CFDictionary
-    let downsampleImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, downsampleOptions)!
-    return UIImage(cgImage: downsampleImage)
+    let cgImage = CGImageSourceCreateThumbnailAtIndex(imageSource, 0, downsampleOptions)!
+    return UIImage(cgImage: cgImage)
+}
+
+func downsampleToCgImage(imageData: Data, to pointSize: CGSize, scale: CGFloat) -> CGImage? {
+    let imageSourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+    let imageSource = CGImageSourceCreateWithData(imageData as CFData, imageSourceOptions)!
+    let maxDimentionInPixels = max(pointSize.width, pointSize.height) * scale
+    let downsampleOptions = [
+        kCGImageSourceShouldCacheImmediately: true,
+        kCGImageSourceCreateThumbnailFromImageAlways: true,
+        kCGImageSourceCreateThumbnailWithTransform: true,
+        kCGImageSourceThumbnailMaxPixelSize: maxDimentionInPixels] as CFDictionary
+    return CGImageSourceCreateThumbnailAtIndex(imageSource, 0, downsampleOptions)
 }
 

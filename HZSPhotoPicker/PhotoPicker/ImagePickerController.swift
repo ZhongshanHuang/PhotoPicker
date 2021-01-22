@@ -10,7 +10,7 @@ import UIKit
 import Photos.PHAsset
 
 @objc
-protocol ImagePickerControllerDelegate {
+protocol ImagePickerControllerDelegate: class {
     
     // 这个照片选择器会自己dismiss，当选择器dismiss的时候，会执行下面的handle
     @objc
@@ -22,6 +22,11 @@ extension ImagePickerController {
     enum PickerType {
         case avatar // 头像选择器(可以裁剪)
         case selections // 照片选择器(可以多选)
+    }
+    
+    enum CropBox {
+        case size(CGSize)
+        case ratio(Double)
     }
 }
 
@@ -37,7 +42,7 @@ class ImagePickerController: UINavigationController {
     let maxSelectableImagesCount: Int
     
     /// 裁剪框的大小
-    let cropBox: CGSize
+    let cropBox: CropBox
     
     /// MARK: - 相册展示外观
     ///
@@ -67,7 +72,7 @@ class ImagePickerController: UINavigationController {
     /// 相册选择器
     init(columnCount: Int = 4, maxSelectableImagesCount: Int = 9, delegate: ImagePickerControllerDelegate) {
         type = .selections
-        self.cropBox = .zero
+        self.cropBox = .size(.zero)
         self.pickerDelegate = delegate
         self.columnCount = columnCount
         self.maxSelectableImagesCount = maxSelectableImagesCount
@@ -77,7 +82,7 @@ class ImagePickerController: UINavigationController {
     }
     
     /// 头像选择器
-    init(cropBox: CGSize, columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
+    init(cropBox: CropBox = .ratio(1), columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
         type = .avatar
         self.cropBox = cropBox
         self.pickerDelegate = delegate

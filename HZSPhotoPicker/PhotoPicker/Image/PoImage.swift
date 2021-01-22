@@ -115,10 +115,12 @@ class PoImage: UIImage {
     
     override init(cgImage: CGImage) {
         super.init(cgImage: cgImage)
+        self.isDecodedForDisplay = true
     }
     
     override init(cgImage: CGImage, scale: CGFloat, orientation: UIImage.Orientation) {
         super.init(cgImage: cgImage, scale: scale, orientation: orientation)
+        self.isDecodedForDisplay = true
     }
     
     override init(ciImage: CIImage) {

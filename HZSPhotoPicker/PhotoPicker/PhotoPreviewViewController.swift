@@ -9,6 +9,9 @@
 import UIKit
 import Photos.PHAsset
 
+private let kTopBarH = UIDevice.topSafeArea + 44
+private let kBottomBarH = UIDevice.bottomSafeArea + 49
+
 class PhotoPreviewViewController: PhotoPickerBaseViewController {
     
     var assetModels: [AssetModel] = []
@@ -19,7 +22,7 @@ class PhotoPreviewViewController: PhotoPickerBaseViewController {
     /// 是否点击预览按钮进来的
     var isFromPreview = false
     
-    private var isStatusHiden: Bool = true
+    private var isStatusHiden: Bool = false
     private var collectionView: UICollectionView!
     private var flowLayout: UICollectionViewFlowLayout = UICollectionViewFlowLayout()
     
@@ -63,7 +66,7 @@ class PhotoPreviewViewController: PhotoPickerBaseViewController {
         flowLayout.scrollDirection = .horizontal
         
         // topBar
-        topBar.frame = CGRect(x: 0, y: isStatusHiden ? -UIDevice.topSafeArea : 0, width: view.bounds.width, height: UIDevice.topSafeArea)
+        topBar.frame = CGRect(x: 0, y: isStatusHiden ? -kTopBarH : 0, width: view.bounds.width, height: kTopBarH)
         view.addSubview(topBar)
         
         let bottomPadding: CGFloat = 15
@@ -80,7 +83,7 @@ class PhotoPreviewViewController: PhotoPickerBaseViewController {
         topBar.addSubview(selectBtn)
         
         // bottomBar
-        bottomBar.frame = CGRect(x: 0, y: isStatusHiden ? view.bounds.height : view.bounds.height - UIDevice.bottomSafeArea, width: view.bounds.width, height: UIDevice.bottomSafeArea)
+        bottomBar.frame = CGRect(x: 0, y: isStatusHiden ? view.bounds.height : view.bounds.height - kBottomBarH, width: view.bounds.width, height: kBottomBarH)
         view.addSubview(bottomBar)
         
         let topPadding: CGFloat = UIDevice.isIphoneX ? 15 : 10
@@ -194,8 +197,8 @@ class PhotoPreviewViewController: PhotoPickerBaseViewController {
 
         // 显示或者隐藏bottomBar
         UIView.animate(withDuration: animated ? 0.35 : 0) {
-            self.topBar.frame.origin.y += (self.isStatusHiden ? -UIDevice.topSafeArea : UIDevice.topSafeArea)
-            self.bottomBar.frame.origin.y += (self.isStatusHiden ? UIDevice.bottomSafeArea : -UIDevice.bottomSafeArea)
+            self.topBar.frame.origin.y = (self.isStatusHiden ? -kTopBarH : 0)
+            self.bottomBar.frame.origin.y = (self.isStatusHiden ? self.view.bounds.height : self.view.bounds.height - kBottomBarH)
         }
     }
     

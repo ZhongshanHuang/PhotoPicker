@@ -22,13 +22,19 @@ extension UIDevice {
     }
     
     static var topSafeArea: CGFloat {
-        if isIphoneX { return 88 }
-        return 64
+        if #available(iOS 11, *), isIphoneX {
+            return UIApplication.shared.windows[0].safeAreaInsets.top
+        } else {
+            return UIApplication.shared.statusBarFrame.height
+        }
     }
     
     static var bottomSafeArea: CGFloat {
-        if isIphoneX { return 83 }
-        return 49
+        if #available(iOS 11, *), isIphoneX {
+            return UIApplication.shared.windows[0].safeAreaInsets.bottom
+        } else {
+            return 0
+        }
     }
     
     static var memoryTotal: Int64 {

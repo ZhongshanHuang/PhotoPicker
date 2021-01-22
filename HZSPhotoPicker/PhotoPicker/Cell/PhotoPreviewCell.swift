@@ -41,9 +41,7 @@ class PhotoPreviewCell: UICollectionViewCell {
     private func setupSubviews() {
         scrollView.frame = contentView.bounds
         contentView.addSubview(scrollView)
-        
         scrollView.addSubview(imageView)
-        
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -105,7 +103,7 @@ class PhotoPreviewCell: UICollectionViewCell {
     }
     
     lazy var imageView: UIImageView = {
-        let imageView = UIImageView()
+        let imageView = PoAnimatedImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
         return imageView

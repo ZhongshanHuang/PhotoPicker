@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import Photos.PHAsset
+import Photos
 
 private var kImageSetterKey: Void?
 
@@ -27,12 +27,7 @@ extension UIImageView {
             completion?(imageCache)
             return
         }
-        
-        if sentinel != imageSetter._sentinel.value() {
-            completion?(nil)
-            return
-        }
-        
+                
         let closure = { [weak self] (image: UIImage?, phAsset: PHAsset) in
             guard let wself = self else { completion?(nil); return }
             wself.image = image
@@ -45,12 +40,13 @@ extension UIImageView {
 
 private class _PoImageSetter {
     
-    static let setterQueue = DispatchQueue(label: "_PoImageSetter", qos: .userInitiated, attributes: .concurrent, autoreleaseFrequency: .never, target: nil)
+    static let setterQueue = DispatchQueue(label: "_PoImageSetter", qos: .userInteractive, attributes: .concurrent, autoreleaseFrequency: .never, target: nil)
     
     fileprivate var _sentinel = PoSentinel()
-
+    private var imageRequestID: PHImageRequestID = 0
     
     func cancel(with asset: PHAsset) -> Int {
+        PHImageManager.default().cancelImageRequest(imageRequestID)
         return _sentinel.increase() + 1
     }
     
@@ -59,13 +55,22 @@ private class _PoImageSetter {
             completion(nil, asset)
             return
         }
-        
-        ImagePickerManager.shared.loadImageData(with: asset) { (data, _) in
+                
+        self.imageRequestID = ImagePickerManager.shared.loadImageData(with: asset) { (data, _) in
             guard let data = data else { completion(nil, asset); return }
-            
             _PoImageSetter.setterQueue.async {
-                let image = downsample(imageData: data, to: targetSize, scale: UIScreen.main.scale)
-                ImagePickerManager.shared.cache.setObject(image, forKey: asset.localIdentifier + "\(targetSize)", cost: image.cost)
+                let type = PoImageDetectType(data: data as NSData)
+                var image: PoImage?
+                if type == .gif {
+                    image = PoImage(data: data)
+                } else {
+                    if let cgImage = downsampleToCgImage(imageData: data, to: targetSize, scale: UIScreen.main.scale) {
+                        image = PoImage(cgImage: cgImage)
+                    }
+                }
+                if let image = image {
+                    ImagePickerManager.shared.cache.setObject(image, forKey: asset.localIdentifier + "\(targetSize)", cost: image.cost)
+                }
                 DispatchQueue.main.async {
                     if sentinel != self._sentinel.value() {
                         completion(nil, asset)
@@ -74,7 +79,6 @@ private class _PoImageSetter {
                     completion(image, asset)
                 }
             }
-            
         }
     }
     

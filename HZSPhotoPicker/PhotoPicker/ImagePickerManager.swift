@@ -237,7 +237,6 @@ class ImagePickerManager {
         if let fileName = (asset.value(forKey: "filename") as? String), fileName.hasSuffix("GIF") {
             options.version = .original
         }
-        
         return PHImageManager.default().requestImageData(for: asset, options: options) { (imageData, dataUTI, orientation, info) in
             completion(imageData, info)
         }

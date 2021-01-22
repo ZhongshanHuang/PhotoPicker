@@ -15,6 +15,7 @@ class PhotoPickerBaseViewController: UIViewController {
 
         // Do any additional setup after loading the view.
         view.backgroundColor = .white
+        edgesForExtendedLayout = .all
         extendedLayoutIncludesOpaqueBars = true
     }
     

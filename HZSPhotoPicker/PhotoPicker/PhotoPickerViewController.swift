@@ -32,13 +32,12 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
         moreAlbum.addTarget(self, action: #selector(handleMoreAlbumAction), for: .touchUpInside)
         navigationItem.titleView = moreAlbum
         
-        
         // right bar
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "取消", style: .plain, target: self, action: #selector(handleDismissAction))
         
         let margin: CGFloat = imagePicker.margin
         let columnCount = (navigationController as! ImagePickerController).columnCount
-        let width: CGFloat = (view.bounds.width - CGFloat(columnCount - 1) * margin) / CGFloat(columnCount)
+        let width: CGFloat = (view.bounds.width - CGFloat(columnCount - 1 + 2) * margin) / CGFloat(columnCount)
         flowLayout.itemSize = CGSize(width: width, height: width)
         flowLayout.minimumLineSpacing = margin
         flowLayout.minimumInteritemSpacing = margin
@@ -46,7 +45,7 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
         // collectionView
         collectionView.frame = view.bounds
         collectionView.backgroundColor = .white
-        collectionView.contentInset.bottom = UIDevice.bottomSafeArea
+        collectionView.contentInset = UIEdgeInsets(top: margin, left: margin, bottom: UIDevice.bottomSafeArea + 49 + margin, right: margin)
         view.addSubview(collectionView)
         
         // proxy
@@ -58,7 +57,7 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
         
         if imagePicker.type == .selections {
             // bottomBar
-            let height = UIDevice.bottomSafeArea
+            let height = UIDevice.bottomSafeArea + 49
             bottomBar.frame = CGRect(x: 0, y: view.bounds.height - height, width: view.bounds.width, height: height)
             view.addSubview(bottomBar)
             
@@ -130,9 +129,12 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
     
     /// CollectionView reloadData
     private func updateCollectionView() {
-        if self.shouldScrollToBottom {
-            let indexPath = IndexPath(item: self.collectionView.numberOfItems(inSection: 0) - 1, section: 0)
-            self.collectionView.scrollToItem(at: indexPath, at: .top, animated: false)
+        if !shouldScrollToBottom { return }
+        
+        collectionView.performBatchUpdates(nil) { [weak self] _ in
+            guard let self = self else { return }
+            let collectionViewContentHeight = self.flowLayout.collectionViewContentSize.height
+            self.collectionView.scrollRectToVisible(CGRect(x: 0.0, y: collectionViewContentHeight - 1.0, width: 1.0, height: 1.0), animated: false)
         }
     }
 

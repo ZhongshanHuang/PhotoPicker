@@ -525,8 +525,8 @@ class PoAnimatedImageView: UIImageView {
     
     // ios 14之前调用setNeedsDisplay或者设置image，不会标记layer的neededDisplay
     override func display(_ layer: CALayer) {
-        if let contents = _curFrame?.cgImage {
-            layer.contents = contents
+        if _totalFrameCount > 0 {
+            layer.contents = _curFrame?.cgImage
         } else {
             super.display(layer)
         }

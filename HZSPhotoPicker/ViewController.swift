@@ -20,6 +20,8 @@ class ViewController: UIViewController {
         // Do any additional setup after loading the view, typically from a nib.
         view.backgroundColor = UIColor.yellow
         
+        imageView.backgroundColor = .green
+        view.addSubview(imageView)
 
         let button = UIButton(type: .system)
         button.setTitle(" 相册 ", for: .normal)
@@ -32,8 +34,8 @@ class ViewController: UIViewController {
     
     @objc
     private func handleClick() {
-//        let pickerController = ImagePickerController(cropBox: CGSize(width: 300, height: 200), columnCount: 4, delegate: self)
-        let pickerController = ImagePickerController(maxSelectableImagesCount: 1, delegate: self)
+        let pickerController = ImagePickerController(cropBox: .ratio(1), columnCount: 4, delegate: self)
+//        let pickerController = ImagePickerController(maxSelectableImagesCount: 1, delegate: self)
         pickerController.modalPresentationStyle = .fullScreen
         present(pickerController, animated: true, completion: nil)
     }

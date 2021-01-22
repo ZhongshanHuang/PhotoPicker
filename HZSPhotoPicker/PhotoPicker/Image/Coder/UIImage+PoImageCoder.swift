@@ -10,7 +10,7 @@ import UIKit
 
 extension UIImage {
     private struct PoImageCoderKey {
-        static let isDecodedForDisplayKey: String = ""
+        static var isDecodedForDisplayKey: Void? = nil
     }
 }
 
@@ -19,10 +19,10 @@ extension UIImage {
     var isDecodedForDisplay: Bool {
         get {
             if (images?.count ?? 0) > 1 { return true }
-            return (objc_getAssociatedObject(self, PoImageCoderKey.isDecodedForDisplayKey) as? Bool) ?? false
+            return (objc_getAssociatedObject(self, &PoImageCoderKey.isDecodedForDisplayKey) as? Bool) ?? false
         }
         set {
-            objc_setAssociatedObject(self, PoImageCoderKey.isDecodedForDisplayKey, newValue, .OBJC_ASSOCIATION_ASSIGN)
+            objc_setAssociatedObject(self, &PoImageCoderKey.isDecodedForDisplayKey, newValue, .OBJC_ASSOCIATION_ASSIGN)
         }
     }
     
