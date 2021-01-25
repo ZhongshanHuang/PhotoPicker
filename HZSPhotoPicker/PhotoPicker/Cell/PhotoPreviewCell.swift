@@ -24,7 +24,6 @@ class PhotoPreviewCell: UICollectionViewCell {
                     self.setPosition(accordingTo: size)
                 }
             }
-
         }
     }
     

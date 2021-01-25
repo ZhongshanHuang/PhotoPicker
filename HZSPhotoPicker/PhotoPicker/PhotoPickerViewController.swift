@@ -44,6 +44,7 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
         
         // collectionView
         collectionView.frame = view.bounds
+        collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         collectionView.backgroundColor = .white
         collectionView.contentInset = UIEdgeInsets(top: margin, left: margin, bottom: UIDevice.bottomSafeArea + 49 + margin, right: margin)
         view.addSubview(collectionView)

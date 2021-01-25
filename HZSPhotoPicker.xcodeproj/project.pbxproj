@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6C09126D25BC147400BB6456 /* ImageFetcherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C09126C25BC147400BB6456 /* ImageFetcherManager.swift */; };
+		6C09127525BC14DE00BB6456 /* ImageFetcherOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C09127425BC14DE00BB6456 /* ImageFetcherOperation.swift */; };
+		6C09127A25BC2A2D00BB6456 /* UIImage+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C09127925BC2A2D00BB6456 /* UIImage+extension.swift */; };
 		6C180028205FF46700C12653 /* PhotoPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C180027205FF46700C12653 /* PhotoPickerViewController.swift */; };
 		6C5A43112062A98300789034 /* AssetCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C5A43102062A98300789034 /* AssetCell.swift */; };
 		6C5A43132062ACA900789034 /* AlbumCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C5A43122062ACA900789034 /* AlbumCell.swift */; };
@@ -49,7 +52,6 @@
 		6CDDB98D24AF88B300671B86 /* ImageDownsample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CDDB98C24AF88B300671B86 /* ImageDownsample.swift */; };
 		6CDDB99124B1D7C300671B86 /* UIImageView+extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CDDB99024B1D7C300671B86 /* UIImageView+extension.swift */; };
 		6CDDB99324B20E4900671B86 /* PoSentinel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6CDDB99224B20E4900671B86 /* PoSentinel.swift */; };
-		6CDDB99524B446D200671B86 /* localImage0.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 6CDDB99424B446D100671B86 /* localImage0.jpg */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +72,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6C09126C25BC147400BB6456 /* ImageFetcherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFetcherManager.swift; sourceTree = "<group>"; };
+		6C09127425BC14DE00BB6456 /* ImageFetcherOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFetcherOperation.swift; sourceTree = "<group>"; };
+		6C09127925BC2A2D00BB6456 /* UIImage+extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+extension.swift"; sourceTree = "<group>"; };
 		6C180027205FF46700C12653 /* PhotoPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPickerViewController.swift; sourceTree = "<group>"; };
 		6C5A43102062A98300789034 /* AssetCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssetCell.swift; sourceTree = "<group>"; };
 		6C5A43122062ACA900789034 /* AlbumCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumCell.swift; sourceTree = "<group>"; };
@@ -118,7 +123,6 @@
 		6CDDB98C24AF88B300671B86 /* ImageDownsample.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ImageDownsample.swift; sourceTree = "<group>"; };
 		6CDDB99024B1D7C300671B86 /* UIImageView+extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImageView+extension.swift"; sourceTree = "<group>"; };
 		6CDDB99224B20E4900671B86 /* PoSentinel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoSentinel.swift; sourceTree = "<group>"; };
-		6CDDB99424B446D100671B86 /* localImage0.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = localImage0.jpg; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -146,6 +150,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		6C09126B25BC144E00BB6456 /* ImageFetcherManager */ = {
+			isa = PBXGroup;
+			children = (
+				6C09126C25BC147400BB6456 /* ImageFetcherManager.swift */,
+				6C09127425BC14DE00BB6456 /* ImageFetcherOperation.swift */,
+			);
+			path = ImageFetcherManager;
+			sourceTree = "<group>";
+		};
 		6C5D5C6024A7559400AEE338 /* Extension */ = {
 			isa = PBXGroup;
 			children = (
@@ -154,6 +167,7 @@
 				6CDDB98124AF872900671B86 /* String+extension.swift */,
 				6C5D5C6124A755AF00AEE338 /* UIDevice+extension.swift */,
 				6CDDB99024B1D7C300671B86 /* UIImageView+extension.swift */,
+				6C09127925BC2A2D00BB6456 /* UIImage+extension.swift */,
 			);
 			path = Extension;
 			sourceTree = "<group>";
@@ -229,7 +243,6 @@
 				6C9F45532054B85800A194BE /* PhotoPicker */,
 				6C9F45232054B7D500A194BE /* AppDelegate.swift */,
 				6C9F45252054B7D500A194BE /* ViewController.swift */,
-				6CDDB99424B446D100671B86 /* localImage0.jpg */,
 				6C9F45272054B7D500A194BE /* Main.storyboard */,
 				6C9F452A2054B7D700A194BE /* Assets.xcassets */,
 				6C9F452C2054B7D700A194BE /* LaunchScreen.storyboard */,
@@ -259,6 +272,7 @@
 		6C9F45532054B85800A194BE /* PhotoPicker */ = {
 			isa = PBXGroup;
 			children = (
+				6C09126B25BC144E00BB6456 /* ImageFetcherManager */,
 				6CDDB98724AF876F00671B86 /* Utilities */,
 				6CDDB96B24AF86CB00671B86 /* Image */,
 				6C5D5C6524A98B7D00AEE338 /* TransitionAnimator */,
@@ -420,7 +434,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6CDDB99524B446D200671B86 /* localImage0.jpg in Resources */,
 				6C9F452E2054B7D700A194BE /* LaunchScreen.storyboard in Resources */,
 				6C9F452B2054B7D700A194BE /* Assets.xcassets in Resources */,
 				6C9F45292054B7D500A194BE /* Main.storyboard in Resources */,
@@ -452,6 +465,7 @@
 				6CDDB99324B20E4900671B86 /* PoSentinel.swift in Sources */,
 				6CDDB97724AF86CB00671B86 /* PoAnimatedImageView.swift in Sources */,
 				6C9F45262054B7D500A194BE /* ViewController.swift in Sources */,
+				6C09127525BC14DE00BB6456 /* ImageFetcherOperation.swift in Sources */,
 				6CDDB97D24AF86CB00671B86 /* PoImageEncoder.swift in Sources */,
 				6C79E58A24A3271B00F505CC /* CropOverlayView.swift in Sources */,
 				6C9F455D2055190F00A194BE /* AlbumPickerViewController.swift in Sources */,
@@ -481,6 +495,8 @@
 				6C5D5C7024A98B7E00AEE338 /* PhotoBrowserTransitionAnimator.swift in Sources */,
 				6C66FB282070922F0077656B /* PhotoPreviewViewController.swift in Sources */,
 				6C79E58824A2F96C00F505CC /* CropView.swift in Sources */,
+				6C09126D25BC147400BB6456 /* ImageFetcherManager.swift in Sources */,
+				6C09127A25BC2A2D00BB6456 /* UIImage+extension.swift in Sources */,
 				6CDDB98424AF872900671B86 /* String+extension.swift in Sources */,
 				6C180028205FF46700C12653 /* PhotoPickerViewController.swift in Sources */,
 				6CDDB97A24AF86CB00671B86 /* PoImageAPNGDecoder.swift in Sources */,

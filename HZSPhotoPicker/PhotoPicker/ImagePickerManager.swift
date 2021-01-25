@@ -25,11 +25,6 @@ class ImagePickerManager {
     
     // MARK: - Properties
     
-    let cache: PoMemoryCache<String, UIImage> = {
-        let cache = PoMemoryCache<String, UIImage>()
-//        cache.costLimit = 100 * 1024 * 1024
-        return cache
-    }()
     weak var pickerDelegate: ImagePickerControllerDelegate?
     var sortAscendingByModificationDate: Bool = true
     
@@ -232,6 +227,7 @@ class ImagePickerManager {
     @discardableResult
     func loadImageData(with asset: PHAsset, completion: @escaping (Data?, Dictionary<AnyHashable, Any>?) -> Void) -> PHImageRequestID {
         let options = PHImageRequestOptions()
+        options.isSynchronous = true
         options.resizeMode = .exact
         options.deliveryMode = .highQualityFormat
         if let fileName = (asset.value(forKey: "filename") as? String), fileName.hasSuffix("GIF") {

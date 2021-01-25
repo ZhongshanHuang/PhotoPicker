@@ -82,7 +82,7 @@ class ImagePickerController: UINavigationController {
     }
     
     /// 头像选择器
-    init(cropBox: CropBox = .ratio(1), columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
+    init(cropBox: CropBox, columnCount: Int = 4, delegate: ImagePickerControllerDelegate) {
         type = .avatar
         self.cropBox = cropBox
         self.pickerDelegate = delegate
@@ -113,7 +113,7 @@ class ImagePickerController: UINavigationController {
     
     deinit {
         // 清除cache
-        ImagePickerManager.shared.cache.removeAllObjects()
+        ImageFetcherManager.default.cache.removeAllObjects()
     }
 }
 

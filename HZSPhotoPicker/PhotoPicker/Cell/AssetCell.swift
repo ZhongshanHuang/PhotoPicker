@@ -102,7 +102,7 @@ class AssetCell: UICollectionViewCell {
     }()
     
     lazy var imageView: UIImageView = {
-        let imageView = UIImageView()
+        let imageView = PoAnimatedImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
         return imageView

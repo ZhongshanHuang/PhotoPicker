@@ -20,34 +20,43 @@ extension UIImageView {
             objc_setAssociatedObject(self, &kImageSetterKey, imageSetter, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
         
-        let sentinel = imageSetter.cancel(with: asset)
+        let sentinel = imageSetter.cancel()
         
-        if let imageCache = ImagePickerManager.shared.cache.object(forKey: asset.localIdentifier + "\(size)") {
-            self.image = imageCache
-            completion?(imageCache)
-            return
+        Dispatch_sync_on_main_queue {
+            if let cachedImage = ImageFetcherManager.default.cache.object(forKey: asset.localIdentifier + "\(size)") {
+                self.image = cachedImage
+                completion?(cachedImage)
+                return
+            }
+            
+            let closure = { [weak self] (image: UIImage?, phAsset: PHAsset) in
+                guard let wself = self else { completion?(nil); return }
+                DispatchQueue.main.async {
+                    wself.image = image
+                    completion?(image)
+                }
+            }
+            imageSetter.loadImage(with: asset, targetSize: size, sentinel: sentinel, completion: closure)
         }
-                
-        let closure = { [weak self] (image: UIImage?, phAsset: PHAsset) in
-            guard let wself = self else { completion?(nil); return }
-            wself.image = image
-            completion?(image)
-        }
-        imageSetter.loadImage(with: asset, targetSize: size, sentinel: sentinel, completion: closure)
     }
     
 }
 
 private class _PoImageSetter {
-    
-    static let setterQueue = DispatchQueue(label: "_PoImageSetter", qos: .userInteractive, attributes: .concurrent, autoreleaseFrequency: .never, target: nil)
-    
     fileprivate var _sentinel = PoSentinel()
     private var imageRequestID: PHImageRequestID = 0
+    private let semaphore: DispatchSemaphore = DispatchSemaphore(value: 1)
+    private(set) var operation: ImageFetcherOperation?
     
-    func cancel(with asset: PHAsset) -> Int {
-        PHImageManager.default().cancelImageRequest(imageRequestID)
-        return _sentinel.increase() + 1
+    @discardableResult
+    func cancel() -> Int {
+        let sentinel: Int
+        semaphore.wait()
+        operation?.cancel()
+        operation = nil
+        sentinel = _sentinel.increase() + 1
+        semaphore.signal()
+        return sentinel
     }
     
     func loadImage(with asset: PHAsset, targetSize: CGSize, sentinel: Int, completion: @escaping (UIImage?, PHAsset) -> Void) {
@@ -55,42 +64,17 @@ private class _PoImageSetter {
             completion(nil, asset)
             return
         }
-                
-        self.imageRequestID = ImagePickerManager.shared.loadImageData(with: asset) { (data, _) in
-            guard let data = data else { completion(nil, asset); return }
-            _PoImageSetter.setterQueue.async {
-                let type = PoImageDetectType(data: data as NSData)
-                var image: PoImage?
-                if type == .gif {
-                    image = PoImage(data: data)
-                } else {
-                    if let cgImage = downsampleToCgImage(imageData: data, to: targetSize, scale: UIScreen.main.scale) {
-                        image = PoImage(cgImage: cgImage)
-                    }
-                }
-                if let image = image {
-                    ImagePickerManager.shared.cache.setObject(image, forKey: asset.localIdentifier + "\(targetSize)", cost: image.cost)
-                }
-                DispatchQueue.main.async {
-                    if sentinel != self._sentinel.value() {
-                        completion(nil, asset)
-                        return
-                    }
-                    completion(image, asset)
-                }
-            }
+        
+        operation = ImageFetcherManager.default.fetch(with: asset, targetSize: targetSize, completion: completion)
+        
+        semaphore.wait()
+        if sentinel != _sentinel.value() {
+            cancel()
         }
+        semaphore.signal()
     }
     
-}
-
-
-private extension UIImage {
-    var cost: Int {
-        guard let cgImage = self.cgImage else { return 1 }
-        let cost = cgImage.bytesPerRow * cgImage.height
-        if cost == 0 { return 1 }
-        return cost
+    deinit {
+        operation?.cancel()
     }
 }
-
