@@ -19,6 +19,7 @@ class ImageFetcherManager {
     
     init(queue: OperationQueue? = nil, cache: PoMemoryCache<String, UIImage>? = nil) {
         self.queue = queue ?? OperationQueue()
+        self.queue.maxConcurrentOperationCount = ProcessInfo.processInfo.activeProcessorCount
         self.cache = cache ?? PoMemoryCache<String, UIImage>()
     }
     

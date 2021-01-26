@@ -21,23 +21,22 @@ extension UIImageView {
         }
         
         let sentinel = imageSetter.cancel()
+        image = nil
         
-        Dispatch_sync_on_main_queue {
-            if let cachedImage = ImageFetcherManager.default.cache.object(forKey: asset.localIdentifier + "\(size)") {
-                self.image = cachedImage
-                completion?(cachedImage)
-                return
-            }
-            
-            let closure = { [weak self] (image: UIImage?, phAsset: PHAsset) in
-                guard let wself = self else { completion?(nil); return }
-                DispatchQueue.main.async {
-                    wself.image = image
-                    completion?(image)
-                }
-            }
-            imageSetter.loadImage(with: asset, targetSize: size, sentinel: sentinel, completion: closure)
+        if let cachedImage = ImageFetcherManager.default.cache.object(forKey: asset.localIdentifier + "\(size)") {
+            self.image = cachedImage
+            completion?(cachedImage)
+            return
         }
+        
+        let closure = { [weak self] (image: UIImage?, phAsset: PHAsset) in
+            guard let wself = self else { completion?(nil); return }
+            DispatchQueue.main.async {
+                wself.image = image
+                completion?(image)
+            }
+        }
+        imageSetter.loadImage(with: asset, targetSize: size, sentinel: sentinel, completion: closure)
     }
     
 }

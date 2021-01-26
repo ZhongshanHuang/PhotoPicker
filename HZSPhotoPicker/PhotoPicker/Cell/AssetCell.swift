@@ -20,7 +20,6 @@ class AssetCell: UICollectionViewCell {
         didSet {
             guard let model = assetModel else { return }
             
-            imageView.image = nil
             self.assetModel = model
             
             selectBtn.isSelected = model.isSelected

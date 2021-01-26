@@ -47,7 +47,7 @@ class ViewController: UIViewController {
     
     @objc
     private func handleClick2() {
-        let pickerController = ImagePickerController(maxSelectableImagesCount: 1, delegate: self)
+        let pickerController = ImagePickerController(columnCount: 3, maxSelectableImagesCount: 1, delegate: self)
         pickerController.modalPresentationStyle = .fullScreen
         present(pickerController, animated: true, completion: nil)
     }
