@@ -14,6 +14,8 @@ class ImageFetcherOperation: Operation {
     let targetSize: CGSize
     let cache: PoMemoryCache<String, UIImage>?
     let completion: ((UIImage?, PHAsset) -> Void)?
+    let sentinel: PoSentinel
+    let sentinelValue: Int
     
     private var memoryCache: PoMemoryCache<String, UIImage> {
         return cache ?? ImageFetcherManager.default.cache
@@ -95,28 +97,34 @@ class ImageFetcherOperation: Operation {
         return super.automaticallyNotifiesObservers(forKey: key)
     }
     
-    init(asset: PHAsset, targetSize: CGSize, cache: PoMemoryCache<String, UIImage>? = nil, completion: ((UIImage?, PHAsset) -> Void)?) {
+    init(asset: PHAsset, targetSize: CGSize, sentinel: PoSentinel, sentinelValue: Int, cache: PoMemoryCache<String, UIImage>? = nil, completion: ((UIImage?, PHAsset) -> Void)?) {
         self.asset = asset
         self.targetSize = targetSize
         self.cache = cache
+        self.sentinel = sentinel
+        self.sentinelValue = sentinelValue
         self.completion = completion
     }
 
     
     override func start() {
-        autoreleasepool { () -> Void in
-            _lock.lock()
-            isStarted = true
-            if isCancelled {
-                cancelOperation()
-                isFinished = true
-            } else if isReady && !isFinished && !isExecuting {
-                isExecuting = true
+        _lock.lock()
+        if sentinel.value != sentinelValue {
+            self.completion?(nil, asset)
+            self.finishOperation()
+        }
+        
+        isStarted = true
+        if isCancelled {
+            cancelOperation()
+            isFinished = true
+        } else if isReady && !isFinished && !isExecuting {
+            isExecuting = true
+            autoreleasepool { () -> Void in
                 startOperation()
             }
-            
-            _lock.unlock()
         }
+        _lock.unlock()
     }
     
     override func cancel() {
@@ -141,7 +149,7 @@ class ImageFetcherOperation: Operation {
         if isCancelled { return }
         
         imageRequestID = ImagePickerManager.shared.loadImageData(with: asset) { (data, _) in
-            guard let data = data else {
+            guard self.sentinel.value == self.sentinelValue, let data = data else {
                 self.completion?(nil, self.asset);
                 self.finishOperation()
                 return

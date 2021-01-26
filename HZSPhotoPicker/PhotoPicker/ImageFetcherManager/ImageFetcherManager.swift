@@ -24,8 +24,8 @@ class ImageFetcherManager {
     }
     
     @discardableResult
-    func fetch(with asset: PHAsset, targetSize: CGSize, completion: ((UIImage?, PHAsset) -> Void)? = nil) -> ImageFetcherOperation {
-        let operation = ImageFetcherOperation(asset: asset, targetSize: targetSize, cache: cache, completion: completion)
+    func fetch(with asset: PHAsset, targetSize: CGSize, sentinel: PoSentinel, sentinelValue: Int, completion: ((UIImage?, PHAsset) -> Void)? = nil) -> ImageFetcherOperation {
+        let operation = ImageFetcherOperation(asset: asset, targetSize: targetSize, sentinel: sentinel, sentinelValue: sentinelValue, cache: cache, completion: completion)
         queue.addOperation(operation)
         return operation
     }

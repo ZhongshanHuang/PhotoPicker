@@ -20,7 +20,7 @@ extension UIImageView {
             objc_setAssociatedObject(self, &kImageSetterKey, imageSetter, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
         
-        let sentinel = imageSetter.cancel()
+        imageSetter.cancel()
         image = nil
         
         if let cachedImage = ImageFetcherManager.default.cache.object(forKey: asset.localIdentifier + "\(size)") {
@@ -30,47 +30,33 @@ extension UIImageView {
         }
         
         let closure = { [weak self] (image: UIImage?, phAsset: PHAsset) in
-            guard let wself = self else { completion?(nil); return }
+            guard let wself = self, let image = image else {
+                completion?(nil)
+                return
+            }
             DispatchQueue.main.async {
                 wself.image = image
                 completion?(image)
             }
         }
-        imageSetter.loadImage(with: asset, targetSize: size, sentinel: sentinel, completion: closure)
+        imageSetter.loadImage(with: asset, targetSize: size, completion: closure)
     }
     
 }
 
 private class _PoImageSetter {
-    fileprivate var _sentinel = PoSentinel()
+    private let _sentinel = PoSentinel()
     private var imageRequestID: PHImageRequestID = 0
-    private let semaphore: DispatchSemaphore = DispatchSemaphore(value: 1)
     private(set) var operation: ImageFetcherOperation?
     
-    @discardableResult
-    func cancel() -> Int {
-        let sentinel: Int
-        semaphore.wait()
+    func cancel() {
         operation?.cancel()
         operation = nil
-        sentinel = _sentinel.increase() + 1
-        semaphore.signal()
-        return sentinel
+        _sentinel.increase()
     }
     
-    func loadImage(with asset: PHAsset, targetSize: CGSize, sentinel: Int, completion: @escaping (UIImage?, PHAsset) -> Void) {
-        if sentinel != _sentinel.value() {
-            completion(nil, asset)
-            return
-        }
-        
-        operation = ImageFetcherManager.default.fetch(with: asset, targetSize: targetSize, completion: completion)
-        
-        semaphore.wait()
-        if sentinel != _sentinel.value() {
-            cancel()
-        }
-        semaphore.signal()
+    func loadImage(with asset: PHAsset, targetSize: CGSize, completion: @escaping (UIImage?, PHAsset) -> Void) {
+        operation = ImageFetcherManager.default.fetch(with: asset, targetSize: targetSize, sentinel: _sentinel, sentinelValue: _sentinel.value, completion: completion)
     }
     
     deinit {

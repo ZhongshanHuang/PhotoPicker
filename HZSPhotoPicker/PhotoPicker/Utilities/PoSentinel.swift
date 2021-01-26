@@ -8,12 +8,12 @@
 
 import Foundation
 
-struct PoSentinel {
+class PoSentinel {
 
     // MARK: - Properties
     private var _value: Int = 0
 
-    private mutating func _valuePtr() -> UnsafeMutablePointer<Int> {
+    private func _valuePtr() -> UnsafeMutablePointer<Int> {
         withUnsafeMutablePointer(to: &_value) { (ptr) -> UnsafeMutablePointer<Int> in
             return ptr
         }
@@ -24,14 +24,13 @@ struct PoSentinel {
         self._value = value
     }
 
-    // MARK: - Methods
-    @discardableResult
-    mutating func value() -> Int {
+    // MARK: - Public
+    var value: Int {
         return _swift_stdlib_atomicLoadInt(object: _valuePtr())
     }
 
     @discardableResult
-    mutating func increase() -> Int {
+    func increase() -> Int {
         return _swift_stdlib_atomicFetchAddInt(object: _valuePtr(), operand: 1)
     }
 }

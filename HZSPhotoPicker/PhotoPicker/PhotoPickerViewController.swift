@@ -77,9 +77,11 @@ class PhotoPickerViewController: PhotoPickerBaseViewController {
             bottomBar.addSubview(senderBtn)
         }
         
-        let fpsLabel = PoFPSLabel()
-        fpsLabel.center = view.center
-        view.addSubview(fpsLabel)
+        #if DEBUG
+            let fpsLabel = PoFPSLabel()
+            fpsLabel.center = view.center
+            view.addSubview(fpsLabel)
+        #endif
     }
     
     private func loadData() {
