@@ -10,7 +10,7 @@ import UIKit
 
 // MARK: - PoAnimatable
 
-protocol PoAnimatable: class {
+protocol PoAnimatable: AnyObject {
     /// Total animated frame count.
     /// If the frame count is less than 1, then the methods below will be ignored.
     var animatedImageFrameCount: Int { get }

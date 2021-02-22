@@ -9,7 +9,7 @@
 import UIKit
 
 // MARK: - present专场动画协议
-protocol PhotoBrowserPresentDelegate: class {
+protocol PhotoBrowserPresentDelegate: AnyObject {
     
     // 对应的imageview
     func imageViewForPresent(indexPath: IndexPath) -> UIImageView
@@ -22,7 +22,7 @@ protocol PhotoBrowserPresentDelegate: class {
 }
 
 // MARK: - dismiss专场动画协议
-protocol PhotoBrowserDismissDelegate: class {
+protocol PhotoBrowserDismissDelegate: AnyObject {
     
     // 对应的imageview
     func imageViewFromDismiss() -> UIImageView

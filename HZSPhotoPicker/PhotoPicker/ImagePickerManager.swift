@@ -229,7 +229,6 @@ class ImagePickerManager {
         let options = PHImageRequestOptions()
         options.isSynchronous = true
         options.resizeMode = .exact
-        options.deliveryMode = .highQualityFormat
         if let fileName = (asset.value(forKey: "filename") as? String), fileName.hasSuffix("GIF") {
             options.version = .original
         }

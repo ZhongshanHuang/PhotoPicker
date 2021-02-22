@@ -22,9 +22,23 @@ class ImageFetcherOperation: Operation {
     }
     
     private let _lock: NSRecursiveLock = NSRecursiveLock()
-    private var isStarted: Bool = false
     private var imageRequestID: PHImageRequestID = 0
 
+    private var _started: Bool = false
+    private var isStarted: Bool {
+        set {
+            _lock.lock()
+            _started = newValue
+            _lock.unlock()
+        }
+        get {
+            _lock.lock()
+            let value = _started
+            _lock.unlock()
+            return value
+        }
+    }
+    
     private var _executing: Bool = false
     override var isExecuting: Bool {
         set {
@@ -83,11 +97,11 @@ class ImageFetcherOperation: Operation {
     }
     
     override var isConcurrent: Bool {
-        return true
+        return false
     }
     
     override var isAsynchronous: Bool {
-        return true
+        return false
     }
     
     override class func automaticallyNotifiesObservers(forKey key: String) -> Bool {
@@ -108,7 +122,6 @@ class ImageFetcherOperation: Operation {
 
     
     override func start() {
-        _lock.lock()
         if sentinel.value != sentinelValue {
             self.completion?(nil, asset)
             self.finishOperation()
@@ -124,11 +137,9 @@ class ImageFetcherOperation: Operation {
                 startOperation()
             }
         }
-        _lock.unlock()
     }
     
     override func cancel() {
-        _lock.lock()
         if !isCancelled {
             super.cancel()
             isCancelled = true
@@ -140,7 +151,6 @@ class ImageFetcherOperation: Operation {
                 isFinished = true
             }
         }
-        _lock.unlock()
     }
     
     // MARK: - Helper
@@ -167,7 +177,11 @@ class ImageFetcherOperation: Operation {
             if let image = image {
                 self.memoryCache.setObject(image, forKey: self.asset.localIdentifier + "\(self.targetSize)", cost: image.cost)
             }
-            self.completion?(image, self.asset)
+            if self.sentinel.value == self.sentinelValue {
+                self.completion?(image, self.asset)
+            } else {
+                self.completion?(nil, self.asset)
+            }
             self.finishOperation()
         }
     }

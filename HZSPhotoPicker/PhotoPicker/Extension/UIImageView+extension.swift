@@ -30,11 +30,11 @@ extension UIImageView {
         }
         
         let closure = { [weak self] (image: UIImage?, phAsset: PHAsset) in
-            guard let wself = self, let image = image else {
-                completion?(nil)
-                return
-            }
             DispatchQueue.main.async {
+                guard let wself = self, let image = image else {
+                    completion?(nil)
+                    return
+                }
                 wself.image = image
                 completion?(image)
             }
@@ -46,7 +46,6 @@ extension UIImageView {
 
 private class _PoImageSetter {
     private let _sentinel = PoSentinel()
-    private var imageRequestID: PHImageRequestID = 0
     private(set) var operation: ImageFetcherOperation?
     
     func cancel() {

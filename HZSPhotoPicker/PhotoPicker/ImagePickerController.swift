@@ -10,7 +10,7 @@ import UIKit
 import Photos.PHAsset
 
 @objc
-protocol ImagePickerControllerDelegate: class {
+protocol ImagePickerControllerDelegate: AnyObject {
     
     // 这个照片选择器会自己dismiss，当选择器dismiss的时候，会执行下面的handle
     @objc
@@ -62,7 +62,7 @@ class ImagePickerController: UINavigationController {
     var allowPickingOriginalPhoto: Bool = false
     
     /// 默认为YES，如果设置为NO,用户将不能选择视频
-    var allowPickingVideo = true
+    var allowPickingVideo = false
     
     /// 用户选中的图片数组
     var selectedModels: [IndexPath: AssetModel] = [:]

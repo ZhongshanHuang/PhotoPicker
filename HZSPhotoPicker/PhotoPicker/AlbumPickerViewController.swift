@@ -18,12 +18,16 @@ class AlbumPickerViewController: PhotoPickerBaseViewController {
     
     private var albumModels: [AlbumModel] = []
     private var tableView: UITableView = UITableView(frame: .zero, style: .plain)
+    private var imagePicker: ImagePickerController {
+        return navigationController as! ImagePickerController
+    }
     
     // MARK: - Methods-[public]
     
     func fetchAlbums() {
         DispatchQueue.global(qos: .userInitiated).async {
-            ImagePickerManager.shared.loadAllAlbums(allowPickingVideo: false, needFetchAssets: true, completion: { (albums) in
+            let allowPickingVideo = (self.imagePicker.type == .avatar) ? false : self.imagePicker.allowPickingVideo
+            ImagePickerManager.shared.loadAllAlbums(allowPickingVideo: allowPickingVideo, needFetchAssets: true, completion: { (albums) in
                 self.albumModels = albums
                
                 DispatchQueue.main.async {
@@ -43,7 +47,7 @@ class AlbumPickerViewController: PhotoPickerBaseViewController {
     }
     
     deinit {
-        print("AlbumPickerViewController deinit")
+        debugPrint("AlbumPickerViewController deinit")
     }
     
     private func setupSubviews() {
